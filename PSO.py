@@ -97,7 +97,7 @@ def ECM(I = None, Temp = None, SoC = None):
         Vt: Battery Voltage
         SoC: State of Charge
     """
-
+    # print(SoC, Temp)
     temp = Temp - 273.15
     VO = griddata(Grid, VO_Tab, (SoC, temp), method='linear')
     R0 = griddata(Grid, R0_Tab, (SoC, temp), method='linear')
@@ -118,7 +118,9 @@ def ThM(I = None, Temp = None, SoC = None):
 
     temp = Temp - 273.15
     R0 = griddata(Grid, R0_Tab, (SoC, temp), method='linear')
+    R0 = R0[0]
     R1 = griddata(Grid, R1_Tab, (SoC, temp), method='linear')
+    R1 = R1[0]
     dVO_T = (13.02 * SoC ** 5 - 38.54 * SoC ** 4 + 32.81 * SoC ** 3 + 2.042 \
         * SoC ** 2 - 13.93 * SoC + 4.8) / 1000
     dTemp = (I ** 2 * (R0 + R1) + I * Temp * dVO_T - h * A * (Temp - Tf)) / (m * c)
@@ -141,31 +143,6 @@ def AM(I = None, Temp = None, Qloss = None):
     Qloss = Qloss + dQloss * t_p
     SoH = 1 - ((Qloss / Qe) / 0.2)
     return [Qloss, SoH]
-
-def BatChrg(CC = None): 
-    """Battery Charging Function
-    Input:
-        CC: Battery charging constant-current(5-1 matrix)
-    Output:
-        SoH: Whole charging process SoH
-        t: Charging time cost
-    """
-
-    SoC = 0.1
-    Qloss = 0.0001
-    SoH = 1 - ((Qloss / Qe) / 0.2)
-    Temp = 298.15
-    i = 1
-
-    SoCRange = np.array([0.2,0.4,0.6,0.8,1.0])
-
-    SoC,Qloss,SoH,Temp,i = nCC(CC(1),SoC,SoCRange(1),Qloss,SoH,Temp,i)
-    SoC,Qloss,SoH,Temp,i = nCC(CC(2),SoC,SoCRange(2),Qloss,SoH,Temp,i)
-    SoC,Qloss,SoH,Temp,i = nCC(CC(3),SoC,SoCRange(3),Qloss,SoH,Temp,i)
-    SoC,Qloss,SoH,Temp,i = nCC(CC(4),SoC,SoCRange(4),Qloss,SoH,Temp,i)
-    SoC,Qloss,SoH,Temp,i = nCC(CC(5),SoC,SoCRange(5),Qloss,SoH,Temp,i)
-    t = (i - 1) * 0.05
-    return SoH,t
 
 def nCC(I = None,SoC = None,SoCRange = None,Qloss = None,SoH = None,Temp = None,i = None): 
     """Battery n-Constant Current Charging Process
@@ -194,10 +171,37 @@ def nCC(I = None,SoC = None,SoCRange = None,Qloss = None,SoH = None,Temp = None,
         [_, SoC] = ECM(I, Temp, SoC)
         Temp = ThM(I, Temp, SoC)
         [Qloss, SoH] = AM(I, Temp, Qloss)
-
+        print(SoC, Temp, Qloss)
         i = i + 1
 
-    return SoC,Qloss,SoH,Temp,i
+    return [SoC,Qloss,SoH,Temp,i]
+
+def BatChrg(CC): 
+    """Battery Charging Function
+    Input:
+        CC: Battery charging constant-current(5-1 matrix)
+    Output:
+        SoH: Whole charging process SoH
+        t: Charging time cost
+    """
+
+    SoC = 0.1
+    Qloss = 0.0001
+    SoH = 1 - ((Qloss / Qe) / 0.2)
+    Temp = 298.15
+    i = 1
+
+    SoCRange = [0.2,0.4,0.6,0.8,1.0]
+
+    [SoC,Qloss,SoH,Temp,i] = nCC(CC[1],SoC,SoCRange[1],Qloss,SoH,Temp,i)
+    [SoC,Qloss,SoH,Temp,i] = nCC(CC[2],SoC,SoCRange[2],Qloss,SoH,Temp,i)
+    [SoC,Qloss,SoH,Temp,i] = nCC(CC[3],SoC,SoCRange[3],Qloss,SoH,Temp,i)
+    [SoC,Qloss,SoH,Temp,i] = nCC(CC[4],SoC,SoCRange[4],Qloss,SoH,Temp,i)
+    [SoC,Qloss,SoH,Temp,i] = nCC(CC[5],SoC,SoCRange[5],Qloss,SoH,Temp,i)
+    t = (i - 1) * 0.05
+    return SoH,t
 
 if __name__ == '__main__':
-    BatChrg([1, 1, 0, 1, 2])
+    a = [1, 1, 0, 1, 2]
+    BatChrg(a)
+ 
