@@ -1,18 +1,17 @@
-"""
-Battery charging optimization by PSO
-@Author: CLOUDUH
-@Data: 2022/05/28
-
-Battery charging optimization program.
-Optimization algorithm is particle swarm optimization
-"""
+'''
+Author: CLOUDUH
+Date: 2022-05-28 17:55:32
+LastEditors: CLOUDUH
+LastEditTime: 2022-05-28 21:07:36
+Description: Battery charging optimization by PSO
+    Battery charging optimization program.
+    Optimization algorithm is particle swarm optimization
+'''
 
 from battery_model import battery_charging
 
 import sys
 import numpy as np
-from scipy.interpolate import griddata
-import pandas as pd
 import numpy.matlib
 
 t_p = 1 # Step
@@ -24,7 +23,7 @@ beta = 1 # Weight coefficient 1: fastest; 0: healthiest
 ger = 50 # The maximum number of iterations 
 
 def particle_swarm_optimization(N:int, d:int, ger:int):
-    """Particle swarm optimization
+    '''Particle swarm optimization
     Args:
         N: Particle swarm number
         d: Particle dimension
@@ -35,9 +34,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         fym: Global optimal objective function value
         fx: Objective function value of each iteration of each particle (ger-N)
         fxm: Optimal objective function value of particle (N-1)
-    Raise:
-        None
-    """
+    '''
     
     iter = 1  # Initial iteration
 

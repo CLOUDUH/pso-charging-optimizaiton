@@ -1,11 +1,12 @@
-"""
-Battery charging model
-@Author: CLOUDUH
-@Data: 2022/05/28
-
-Use coupling model which include battery 1-RC equivalent circuit model
-& thermal model & aging model.
-"""
+'''
+Author: CLOUDUH
+Date: 2022-05-28 17:55:32
+LastEditors: CLOUDUH
+LastEditTime: 2022-05-28 21:05:54
+Description: 
+    Use coupling model which include battery 1-RC equivalent circuit model
+    & thermal model & aging model.
+'''
 
 import sys
 import numpy as np
@@ -32,7 +33,7 @@ R = 8.314 # Ideal gas constant J/(kg*K)
 alpha = 32 # Coefficient for aging acceleration caused by the current
 
 def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float): 
-    """Battery 1-RC Equivalent Circuit Model
+    '''Battery 1-RC Equivalent Circuit Model
     Args:
         I: Battery charge current(charging positive) (A)
         Temp: Battery temperature (K)
@@ -40,9 +41,7 @@ def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float):
     Returns:
         Vt: Battery voltage
         SoC: State of charge
-    Raises: 
-        None
-    """
+    '''
 
     temp = Temp - 273.15
     VO = griddata(Grid, VO_Tab, (SoC, temp), method='linear')
@@ -54,16 +53,14 @@ def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float):
     return [Vt, SoC]
 
 def thermal_model(t_p:float, I:float, Temp:float, SoC:float): 
-    """Battery Thermal Model
+    '''Battery Thermal Model
     Args:
         I: Battery current(Charging positive) (A)
         Temp: Battery temperature (K)
         SoC: State of charge
     Returns:
         Temp: Battery temperature
-    Raises: 
-        None
-    """
+    '''
 
     temp = Temp - 273.15
     R0 = griddata(Grid, R0_Tab, (SoC, temp), method='linear')
@@ -78,7 +75,7 @@ def thermal_model(t_p:float, I:float, Temp:float, SoC:float):
     return Temp
 
 def aging_model(t_p:float, I:float, Temp:float, Qloss:float): 
-    """Battery Aging Model
+    '''Battery Aging Model
     Args:
         I: Battery current(charging positive) (A)
         Temp: Battery temperature (K)
@@ -86,9 +83,7 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float):
     Returns:
         Qloss: Loss battery capacity (Ah)
         SoH: State of health 
-    Raises: 
-        None
-    """
+    '''
 
     dQloss = (np.abs(I) / 3600) * z * B * np.exp((- E_a + alpha * np.abs(I)) / (R * Temp)) \
         * (Qloss / (B * np.exp((- E_a + alpha * np.abs(I)) / (R * Temp)))) ** (1 - (1 / z))
@@ -97,15 +92,13 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float):
     return [Qloss, SoH]
 
 def battery_charging(t_p:float, nCC:list, iter:int, swarm:int): 
-    """Battery Charging Function
+    '''Battery Charging Function
     Args:
         CC: Battery charging constant current (d-1 list) 
     Returns:
         SoH: Whole charging process SoH
         t: Charging time cost
-    Raise:
-        None
-    """
+    '''
 
     SoC = 0.1
     Qloss = 0.0001
@@ -141,10 +134,10 @@ def battery_charging(t_p:float, nCC:list, iter:int, swarm:int):
     return [SoH,t]
 
 if __name__ == '__main__':
-    """test process
+    '''test process
 
     you can run this file directly and check
-    """
+    '''
     nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
     battery_charging(1, nCC, 1, 1)
  

@@ -1,13 +1,14 @@
-"""
-Solar energy calculate
-@Author: CLOUDUH
-@Data: 2022/05/28
-
-Solar energy calculate
-- Solar irradiation calculate
-- Solar cell calculate
-- Maybe MPPT?
-"""
+'''
+Author: CLOUDUH
+Date: 2022-05-28 17:55:32
+LastEditors: CLOUDUH
+LastEditTime: 2022-05-28 21:03:41
+Description: 
+    Solar energy calculate
+    - Solar irradiation calculate
+    - Solar cell calculate
+    - Maybe MPPT?
+'''
 
 import sys
 import numpy as np
@@ -19,16 +20,14 @@ cur_sc_ref = 3.6 # Short circuit current
 cur_mp_ref = 3 # Maximum power point current
 
 def irradiation_cal(t:float, date:float, latitude:float):
-    """Solar irradiation calculate
+    '''Solar irradiation calculate
     Args:
         t: Time (h) 0-24
         date: Today 0-365 
         latitude: (°)
     Returns:
-
-    Raises:
-        None
-    """
+        irradiation: Unit area intensity of solar radiation (W/m^2)
+    '''
 
     I_SC = 1367.0 # Extra-solar intensity of solar radiation
     r_0 = 149597890.0 # Average distance of the eart
@@ -48,29 +47,28 @@ def irradiation_cal(t:float, date:float, latitude:float):
     return irradiation
 
 def solar_cell(irradiation:float, Temp:float, volt:float):
-    """Solar cell engineering model
+    '''Solar cell engineering model
     Args:
         irradiation: Unit area intensity of solar radiation (W/m^2)
         Temp: Solar cell temperature (K)
-        Volt: Terminal voltage (V)
+        volt: Terminal voltage (V)
     Returns:
-        Cur: Solar cell current (A)
-    Raises:
-        None
-    """
+        cur: Solar cell current (A)
+    '''
 
-    vol_oc = vol_oc_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
-    vol_mp = vol_mp_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
+    volt_oc = vol_oc_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
+    volt_mp = vol_mp_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
     cur_sc = cur_sc_ref * (irradiation / 1000) * (1 + 0.0025 * (abs(Temp - 298.15)))
     cur_mp = cur_mp_ref * (irradiation / 1000) * (1 + 0.0025 * (abs(Temp - 298.15)))
 
-    c2 = ((vol_mp / vol_oc) - 1) * (np.log(1 - (cur_mp / cur_sc))) ** -1
-    c1 = (1 - (cur_mp / cur_sc)) * np.exp(-vol_mp / (c2 * vol_oc))
-    cur = cur_sc *(1-c1 *(np.exp( volt / (c2 * vol_oc)) - 1))
+    # c2 = ((volt_mp / volt_oc) - 1) * (np.log(1 - (cur_mp / cur_sc))) ** -1
+    # c1 = (1 - (cur_mp / cur_sc)) * np.exp(-volt_mp / (c2 * volt_oc))
+    # cur = cur_sc *(1-c1 *(np.exp( volt / (c2 * volt_oc)) - 1))
 
-    # cur = vol_mp * cur_mp / volt # MPPT mode only, a simple way to build it
+    cur = cur_mp # MPPT mode only, a simple way to build it
+    pwr = cur_mp * volt_mp
 
-    return cur
+    return [cur, pwr]
 
 if __name__ == '__main__':
 
