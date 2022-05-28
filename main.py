@@ -6,7 +6,7 @@ Battery charging optimization by PSO
 Battery charging optimization program.
 Use coupling model which include battery 1-RC equivalent circuit model
 & thermal model & aging model.
-Optimization algorithermal_model is particle swarm optimization
+Optimization algorithm is particle swarm optimization
 
 You also can find .m program in this repository
 """
@@ -17,8 +17,7 @@ from scipy.interpolate import griddata
 import pandas as pd
 import numpy.matlib
 
-# Load battert basic value
-VO_Tab = pd.read_csv("utils/VO.csv",header=None)
+VO_Tab = pd.read_csv("utils/VO.csv",header=None) # O not 0!!!
 R0_Tab = pd.read_csv("utils/R0.csv",header=None)
 R1_Tab = pd.read_csv("utils/R1.csv",header=None)
 tau1_Tab = pd.read_csv("utils/tau1.csv",header=None)
@@ -44,7 +43,7 @@ c2 = 1.49115 # Swarm learning factor
 beta = 1 # Weight coefficient 1: fastest; 0: healthiest
 ger = 50 # The maximum number of iterations 
 
-def equivalent_circuit_model(I, Temp, SoC): 
+def equivalent_circuit_model(I:float, Temp:float, SoC:float): 
     """Battery 1-RC Equivalent Circuit Model
     Args:
         I: Battery charge current(charging positive) (A)
@@ -65,7 +64,7 @@ def equivalent_circuit_model(I, Temp, SoC):
     SoC = SoC + t_p * I / (3600 * Qe)
     return [Vt, SoC]
 
-def thermal_model(I, Temp, SoC): 
+def thermal_model(I:float, Temp:float, SoC:float): 
     """Battery Thermal Model
     Args:
         I: Battery current(Charging positive) (A)
@@ -88,7 +87,7 @@ def thermal_model(I, Temp, SoC):
     Temp = Temp + dTemp * t_p
     return Temp
 
-def aging_model(I, Temp, Qloss): 
+def aging_model(I:float, Temp:float, Qloss:float): 
     """Battery Aging Model
     Args:
         I: Battery current(charging positive) (A)
@@ -106,41 +105,6 @@ def aging_model(I, Temp, Qloss):
     Qloss = Qloss + dQloss * t_p
     SoH = 1 - ((Qloss / Qe) / 0.2)
     return [Qloss, SoH]
-
-# def nCC(I, SoC, SoC_range, Qloss, SoH, Temp, i): 
-#     """Battery n-Constant Current Charging Process
-#     Args:
-#         I: Battery current(charging positive) (A)
-#         SoC: State of charge
-#         SoC_range: n-CC charging SoC range
-#         Qloss: Loss battery capacity (Ah)
-#         SoH: State of health
-#         Temp: Battery temperature (K)
-#         i: Flag of cycle
-#     Returns:
-#         SoC: State of charge
-#         Qloss: Loss battery capacity (Ah)
-#         SoH: State of health
-#         Temp: Battery temperature (K)
-#         i: Flag of cycle
-#     Raises:
-#         None
-#     """
-
-#     while SoC <= SoC_range:
-
-#         if I <= 0.01:
-#             break # Stop nonsence
-
-#         if (i-1) * t_p >= 10 * 3600:
-#             break # Stop falling
-
-#         [_, SoC] = equivalent_circuit_model(I, Temp, SoC)
-#         Temp = thermal_model(I, Temp, SoC)
-#         [Qloss, SoH] = aging_model(I, Temp, Qloss)
-#         i = i + 1
-
-#     return [SoC,Qloss,SoH,Temp,i]
 
 def battery_charging(nCC:list, iter:int, swarm:int): 
     """Battery Charging Function
@@ -164,15 +128,20 @@ def battery_charging(nCC:list, iter:int, swarm:int):
 
         while SoC <= SoC_range[j]:
 
+            
+
             if nCC[j] <= 0.01:
                 break # Stop nonsence
 
-            if (i-1) * t_p >= 10 * 3600:
+            if (i-1) * t_p >= 2 * 3600:
                 break # Stop falling
 
-            [_, SoC] = equivalent_circuit_model(nCC[j], Temp, SoC) 
+            [V_t, SoC] = equivalent_circuit_model(nCC[j], Temp, SoC) 
             Temp = thermal_model(nCC[j], Temp, SoC)
             [Qloss, SoH] = aging_model(nCC[j], Temp, Qloss)
+
+            print(i, round(nCC[j],2), round(SoC, 2), round(Temp,2), round(SoH,2))
+
             i = i + 1
 
     t = (i - 1) * 0.05
@@ -181,12 +150,23 @@ def battery_charging(nCC:list, iter:int, swarm:int):
 
     return [SoH,t]
 
-def PSO(N, d, ger):
+def particle_swarm_optimization(N:int, d:int, ger:int):
+    """Particle swarm optimization
+    Args:
+        N: Particle swarm number
+        d: Particle dimension
+    Returns:
+        SoH: SoH of each iteration of each particle (ger-N)
+        t: Charging time cost
+        ym: The best known position of entire swarm (1-d)
+        fym: Global optimal objective function value
+        fx: Objective function value of each iteration of each particle (ger-N)
+        fxm: Optimal objective function value of particle (N-1)
+    Raise:
+        None
+    """
     
     iter = 1  # Initial iteration
-
-    N = 20 # Particle swarm number
-    d = 5 # Particle dimension
 
     x = np.zeros((N,d)) # Pariticle Position (N-d)
     v = np.zeros((N,d)) # Pariticle Velcocity (N-d)
@@ -259,5 +239,5 @@ def PSO(N, d, ger):
     return [SoH,t,ym,fym,fx,fxm]
 
 if __name__ == '__main__':
-    PSO(20, 5, 50)
+    particle_swarm_optimization(20, 5, 50)
  
