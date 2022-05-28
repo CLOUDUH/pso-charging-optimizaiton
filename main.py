@@ -1,9 +1,21 @@
+"""
+Battery charging optimization by PSO
+@Author: CLOUDUH
+@Data: 2022/05/28
+
+Battery charging optimization program.
+Use coupling model which include battery 1-RC equivalent circuit model
+& thermal model & aging model.
+Optimization algorithermal_model is particle swarm optimization
+
+You also can find .m program in this repository
+"""
+
 import sys
 import numpy as np
 from scipy.interpolate import griddata
 import pandas as pd
 import numpy.matlib
-## Initialization
 
 # Load battert basic value
 VO_Tab = pd.read_csv("utils/VO.csv",header=None)
@@ -32,17 +44,19 @@ c2 = 1.49115 # Swarm learning factor
 beta = 1 # Weight coefficient 1: fastest; 0: healthiest
 ger = 50 # The maximum number of iterations 
 
-def ECM(I = None, Temp = None, SoC = None): 
+def equivalent_circuit_model(I, Temp, SoC): 
     """Battery 1-RC Equivalent Circuit Model
-    Input:
-        I: Battery current(Charging positive)
-        Temp: Battery temperature
-        SoC: State of Charge
-    Output:
-        Vt: Battery Voltage
-        SoC: State of Charge
+    Args:
+        I: Battery charge current(charging positive) (A)
+        Temp: Battery temperature (K)
+        SoC: State of charge
+    Returns:
+        Vt: Battery voltage
+        SoC: State of charge
+    Raises: 
+        None
     """
-    # print(SoC, Temp)
+
     temp = Temp - 273.15
     VO = griddata(Grid, VO_Tab, (SoC, temp), method='linear')
     R0 = griddata(Grid, R0_Tab, (SoC, temp), method='linear')
@@ -51,14 +65,16 @@ def ECM(I = None, Temp = None, SoC = None):
     SoC = SoC + t_p * I / (3600 * Qe)
     return [Vt, SoC]
 
-def ThM(I = None, Temp = None, SoC = None): 
+def thermal_model(I, Temp, SoC): 
     """Battery Thermal Model
-    Input:
-        I: Battery current(Charging positive)
+    Args:
+        I: Battery current(Charging positive) (A)
+        Temp: Battery temperature (K)
+        SoC: State of charge
+    Returns:
         Temp: Battery temperature
-        SoC: State of Charge
-    Output:
-        Temp: Battery temperature
+    Raises: 
+        None
     """
 
     temp = Temp - 273.15
@@ -72,15 +88,17 @@ def ThM(I = None, Temp = None, SoC = None):
     Temp = Temp + dTemp * t_p
     return Temp
 
-def AM(I = None, Temp = None, Qloss = None): 
+def aging_model(I, Temp, Qloss): 
     """Battery Aging Model
-    Input:
-        I: Battery current(Charging positive)
-        Temp: Battery temperature
-        Qloss: Loss battery capacity
-    Output:
-        Qloss: Loss battery capacity
-        SoH: State of Health
+    Args:
+        I: Battery current(charging positive) (A)
+        Temp: Battery temperature (K)
+        Qloss: Loss battery capacity (Ah)
+    Returns:
+        Qloss: Loss battery capacity (Ah)
+        SoH: State of health 
+    Raises: 
+        None
     """
 
     dQloss = (np.abs(I) / 3600) * z * B * np.exp((- E_a + alpha * np.abs(I)) / (R * Temp)) \
@@ -89,44 +107,50 @@ def AM(I = None, Temp = None, Qloss = None):
     SoH = 1 - ((Qloss / Qe) / 0.2)
     return [Qloss, SoH]
 
-def nCC(I = None,SoC = None,SoCRange = None,Qloss = None,SoH = None,Temp = None,i = None): 
-    """Battery n-Constant Current Charging Process
-    Input:
-        I: Battery current(Charging positive)
-        SoC: State of Charge
-        SoCRange: n-CC Charging SoC Range
-        Qloss: Loss battery capacity
-        SoH: State of Health
-        Temp: Battery temperature
-        i: Flag of cycle
-    Output:
-        SoC: State of Charge
-        Qloss: Loss battery capacity
-        SoH: State of Health
-        Temp: Battery temperature
-        i: Flag of cycle
-        Log_Charging: Save charging process data
-    """
+# def nCC(I, SoC, SoC_range, Qloss, SoH, Temp, i): 
+#     """Battery n-Constant Current Charging Process
+#     Args:
+#         I: Battery current(charging positive) (A)
+#         SoC: State of charge
+#         SoC_range: n-CC charging SoC range
+#         Qloss: Loss battery capacity (Ah)
+#         SoH: State of health
+#         Temp: Battery temperature (K)
+#         i: Flag of cycle
+#     Returns:
+#         SoC: State of charge
+#         Qloss: Loss battery capacity (Ah)
+#         SoH: State of health
+#         Temp: Battery temperature (K)
+#         i: Flag of cycle
+#     Raises:
+#         None
+#     """
 
-    while SoC <= SoCRange:
+#     while SoC <= SoC_range:
 
-        if I <= 0.01:
-            break
+#         if I <= 0.01:
+#             break # Stop nonsence
 
-        [_, SoC] = ECM(I, Temp, SoC)
-        Temp = ThM(I, Temp, SoC)
-        [Qloss, SoH] = AM(I, Temp, Qloss)
-        i = i + 1
+#         if (i-1) * t_p >= 10 * 3600:
+#             break # Stop falling
 
-    return [SoC,Qloss,SoH,Temp,i]
+#         [_, SoC] = equivalent_circuit_model(I, Temp, SoC)
+#         Temp = thermal_model(I, Temp, SoC)
+#         [Qloss, SoH] = aging_model(I, Temp, Qloss)
+#         i = i + 1
 
-def BatChrg(CC, iter, swarm): 
+#     return [SoC,Qloss,SoH,Temp,i]
+
+def battery_charging(nCC:list, iter:int, swarm:int): 
     """Battery Charging Function
-    Input:
-        CC: Battery charging constant-current(5-1 matrix)
-    Output:
+    Args:
+        CC: Battery charging constant current (d-1 list) 
+    Returns:
         SoH: Whole charging process SoH
         t: Charging time cost
+    Raise:
+        None
     """
 
     SoC = 0.1
@@ -134,32 +158,41 @@ def BatChrg(CC, iter, swarm):
     SoH = 1 - ((Qloss / Qe) / 0.2)
     Temp = 298.15
     i = 1
-    SoCRange = [0.2,0.4,0.6,0.8,1.0]
+    SoC_range = [0.2,0.4,0.6,0.8,1.0]
 
-    [SoC,Qloss,SoH,Temp,i] = nCC(CC[1],SoC,SoCRange[1],Qloss,SoH,Temp,i)
-    [SoC,Qloss,SoH,Temp,i] = nCC(CC[2],SoC,SoCRange[2],Qloss,SoH,Temp,i)
-    [SoC,Qloss,SoH,Temp,i] = nCC(CC[3],SoC,SoCRange[3],Qloss,SoH,Temp,i)
-    [SoC,Qloss,SoH,Temp,i] = nCC(CC[4],SoC,SoCRange[4],Qloss,SoH,Temp,i)
-    [SoC,Qloss,SoH,Temp,i] = nCC(CC[5],SoC,SoCRange[5],Qloss,SoH,Temp,i)
+    for j in range(5):
+
+        while SoC <= SoC_range[j]:
+
+            if nCC[j] <= 0.01:
+                break # Stop nonsence
+
+            if (i-1) * t_p >= 10 * 3600:
+                break # Stop falling
+
+            [_, SoC] = equivalent_circuit_model(nCC[j], Temp, SoC) 
+            Temp = thermal_model(nCC[j], Temp, SoC)
+            [Qloss, SoH] = aging_model(nCC[j], Temp, Qloss)
+            i = i + 1
+
     t = (i - 1) * 0.05
+
     print("Battery Charge Process", iter, swarm)
+
     return [SoH,t]
 
 def PSO(N, d, ger):
     
     iter = 1  # Initial iteration
 
-    N = 20
-    d = 5
+    N = 20 # Particle swarm number
+    d = 5 # Particle dimension
 
     x = np.zeros((N,d)) # Pariticle Position (N-d)
     v = np.zeros((N,d)) # Pariticle Velcocity (N-d)
 
     Ilimit = np.matlib.repmat(np.array([[0],[3.3]]),1,d) # Charging current limits (2-d)
     vlimit = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d) # Velocity limits (2-d)
-
-    # lsat = np.zeros((N,d))
-    # hsat = np.zeros((N,d))
 
     f1 = lambda t: beta * t / t_m # Object function
 
@@ -182,7 +215,7 @@ def PSO(N, d, ger):
 
         for j in range(N):
 
-            [SoH[iter,j],t[iter,j]]= BatChrg(x[j],iter,j) # Battery simulation
+            [SoH[iter,j],t[iter,j]]= battery_charging(x[j],iter,j) # Battery simulation
             fx[iter,j] = f1(t[iter,j]) # Optimal function value
 
             if fxm[j] > fx[iter,j]:
@@ -196,7 +229,7 @@ def PSO(N, d, ger):
 
         v = v * w + c1 * np.random.rand() * (xm - x) + c2 * np.random.rand() * (np.matlib.repmat(ym,N,1) - x)
 
-        # Velcocity Saturation
+        # Position saturation
         for k in range(d):
             hsat = np.where(v[:,k] < vlimit[0,k], 1, 0)
             lsat = np.where(v[:,k] > vlimit[1,k], 2, 0)
@@ -209,7 +242,7 @@ def PSO(N, d, ger):
 
         x = x + v # Updating position
 
-        # Velcocity Saturation
+        # Velcocity saturation
         for k in range(d): 
             hsat = np.where(x[:,k] < Ilimit[0,k], 1, 0)
             lsat = np.where(x[:,k] > Ilimit[1,k], 2, 0)
