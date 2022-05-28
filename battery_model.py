@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-28 21:05:54
+LastEditTime: 2022-05-28 21:56:30
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -35,6 +35,7 @@ alpha = 32 # Coefficient for aging acceleration caused by the current
 def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float): 
     '''Battery 1-RC Equivalent Circuit Model
     Args:
+        t_p: Step (s)
         I: Battery charge current(charging positive) (A)
         Temp: Battery temperature (K)
         SoC: State of charge
@@ -55,6 +56,7 @@ def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float):
 def thermal_model(t_p:float, I:float, Temp:float, SoC:float): 
     '''Battery Thermal Model
     Args:
+        t_p: Step (s)
         I: Battery current(Charging positive) (A)
         Temp: Battery temperature (K)
         SoC: State of charge
@@ -77,6 +79,7 @@ def thermal_model(t_p:float, I:float, Temp:float, SoC:float):
 def aging_model(t_p:float, I:float, Temp:float, Qloss:float): 
     '''Battery Aging Model
     Args:
+        t_p: Step (s)
         I: Battery current(charging positive) (A)
         Temp: Battery temperature (K)
         Qloss: Loss battery capacity (Ah)
@@ -91,13 +94,15 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float):
     SoH = 1 - ((Qloss / Qe) / 0.2)
     return [Qloss, SoH]
 
-def battery_charging(t_p:float, nCC:list, iter:int, swarm:int): 
+def battery_charging(t_p:float, nCC:list): 
     '''Battery Charging Function
     Args:
+        t_p: Step (s)
         CC: Battery charging constant current (d-1 list) 
     Returns:
         SoH: Whole charging process SoH
         t: Charging time cost
+        E_ch: Total battery charge energy
     '''
 
     SoC = 0.1
@@ -105,11 +110,25 @@ def battery_charging(t_p:float, nCC:list, iter:int, swarm:int):
     SoH = 1 - ((Qloss / Qe) / 0.2)
     Temp = 298.15
     i = 1
-    SoC_range = [0.2,0.4,0.6,0.8,1.0]
+    E_ch = 0
 
-    for j in range(5):
+    n = len(nCC)
+    if n == 5:
+        SoC_range = [0.2,0.4,0.6,0.8,1.0]
+    elif n == 4:
+        SoC_range = [0.25,0.5,0.75,1.0]
+    elif n == 3:
+        SoC_range = [0.4,0.8,1.0]
+    elif n == 2:
+        SoC_range = [0.7,1]
+    elif n == 1:
+        SoC_range = [1]
+    else:
+        raise ValueError("nCC list error ")
 
-        while SoC <= SoC_range[j]:
+    for j in range(n):
+
+        while SoC < SoC_range[j]:
 
             
 
@@ -123,21 +142,21 @@ def battery_charging(t_p:float, nCC:list, iter:int, swarm:int):
             Temp = thermal_model(t_p, nCC[j], Temp, SoC)
             [Qloss, SoH] = aging_model(t_p, nCC[j], Temp, Qloss)
 
+            E_ch = E_ch + V_t * nCC[j] * t_p
+
             print(i, round(nCC[j],2), round(SoC, 2), round(Temp,2), round(SoH,2))
 
             i = i + 1
 
     t = (i - 1) * 0.05
 
-    print("Battery Charge Process", iter, swarm)
-
-    return [SoH,t]
+    return [SoH,t,E_ch]
 
 if __name__ == '__main__':
     '''test process
-
     you can run this file directly and check
     '''
+    
     nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
     battery_charging(1, nCC, 1, 1)
  

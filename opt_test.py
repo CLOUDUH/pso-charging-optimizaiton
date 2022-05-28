@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-28 21:07:05
+LastEditTime: 2022-05-28 22:26:53
 Description: 
 '''
 
@@ -16,13 +16,13 @@ from scipy.interpolate import griddata
 import pandas as pd
 import numpy.matlib
 
-t_p = 1 # Step
+t_p = 1 # Step (s)
 t_m = 2*3600 # Empirical charging time
 
 def optimization_test(t_p:float):
     '''optimization_test
     Args:
-        t_p: Step
+        t_p: Step (s)
     Returns:
         normal: CC list in paper
     '''
@@ -42,4 +42,7 @@ def optimization_test(t_p:float):
 
 if __name__ == '__main__':
     
-    print(optimization_test(t_p)/3600000)
+    E_m = optimization_test(t_p) 
+    nCC = [1.65, 1, 0.5]
+    [SoH,t,E_ch] = battery_charging(t_p,nCC)
+    print(E_m,SoH,t,E_ch)
