@@ -2,13 +2,14 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-28 21:56:30
+LastEditTime: 2022-05-29 16:06:50
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
 '''
 
 import sys
+from unittest import expectedFailure
 import numpy as np
 from scipy.interpolate import griddata
 import pandas as pd
@@ -88,14 +89,49 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float):
         SoH: State of health 
     '''
 
-    dQloss = (np.abs(I) / 3600) * z * B * np.exp((- E_a + alpha * np.abs(I)) / (R * Temp)) \
-        * (Qloss / (B * np.exp((- E_a + alpha * np.abs(I)) / (R * Temp)))) ** (1 - (1 / z))
+    try:
+        b = (Qloss / (B * np.exp((-E_a + alpha * abs(I)) / (R * Temp)))) ** (1 - (1 / z))
+    except:
+        b = 0
+
+    dQloss = (abs(I) / 3600) * z * B * np.exp((-E_a + alpha * abs(I)) / (R * Temp)) * b
     Qloss = Qloss + dQloss * t_p
     SoH = 1 - ((Qloss / Qe) / 0.2)
+
+    # print(dQloss, Qloss, SoH)
     return [Qloss, SoH]
 
-def battery_charging(t_p:float, nCC:list): 
-    '''Battery Charging Function
+def battery_model(t_p:float, I:float, V_t:float, SoC:float, Temp:float, Qloss:float, SoH:float):
+    '''Battery Charging Model
+    Args:
+        t_p: Step (s)
+        I: Battery current(charging positive) (A)
+        V_t: Battery terminal voltage (V)
+        SoC: State of charge
+        Temp: Battery temperature (K)
+        Qloss: Loss battery capacity (Ah)
+        SoH: State of health
+    Returns:
+        V_t: Battery terminal voltage (V)
+        SoC: State of charge
+        Temp: Battery temperature (K)
+        Qloss: Loss battery capacity (Ah)
+        SoH: State of health
+    Detail:
+        This function is single step model, requires a while loop outside
+    '''
+
+    [V_t, SoC] = equivalent_circuit_model(t_p, I, Temp, SoC) 
+    Temp = thermal_model(t_p, I, Temp, SoC)
+    [Qloss, SoH] = aging_model(t_p, I, Temp, Qloss)
+
+    print("Cur:", round(SoC, 2), "SoC:", round(Temp,2), "Temp:", \
+        round(Temp,2), "Qloss:", round(Qloss,2), "Qloss:", round(SoH,2))
+
+    return [V_t, SoC, Temp, Qloss, SoH]
+
+def battery_charged(t_p:float, nCC:list): 
+    '''Battery Charging Whole Process
     Args:
         t_p: Step (s)
         CC: Battery charging constant current (d-1 list) 
@@ -103,10 +139,12 @@ def battery_charging(t_p:float, nCC:list):
         SoH: Whole charging process SoH
         t: Charging time cost
         E_ch: Total battery charge energy
+    Detail:
+        Do not need while loop
     '''
 
     SoC = 0.1
-    Qloss = 0.0001
+    Qloss = 0.001
     SoH = 1 - ((Qloss / Qe) / 0.2)
     Temp = 298.15
     i = 1
@@ -114,23 +152,21 @@ def battery_charging(t_p:float, nCC:list):
 
     n = len(nCC)
     if n == 5:
-        SoC_range = [0.2,0.4,0.6,0.8,1.0]
+        SoC_range = [0.2,0.4,0.6,0.8,0.999]
     elif n == 4:
-        SoC_range = [0.25,0.5,0.75,1.0]
+        SoC_range = [0.25,0.5,0.75,0.999]
     elif n == 3:
-        SoC_range = [0.4,0.8,1.0]
+        SoC_range = [0.4,0.8,0.999]
     elif n == 2:
-        SoC_range = [0.7,1]
+        SoC_range = [0.7,0.999]
     elif n == 1:
-        SoC_range = [1]
+        SoC_range = [0.999]
     else:
-        raise ValueError("nCC list error ")
+        raise ValueError("nCC list error")
 
     for j in range(n):
 
         while SoC < SoC_range[j]:
-
-            
 
             if nCC[j] <= 0.01:
                 break # Stop nonsence
@@ -144,7 +180,7 @@ def battery_charging(t_p:float, nCC:list):
 
             E_ch = E_ch + V_t * nCC[j] * t_p
 
-            print(i, round(nCC[j],2), round(SoC, 2), round(Temp,2), round(SoH,2))
+            print(i, round(nCC[j],2), round(SoC, 2), round(Temp,2), round(Qloss,2), round(SoH,2))
 
             i = i + 1
 
@@ -158,5 +194,6 @@ if __name__ == '__main__':
     '''
     
     nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
-    battery_charging(1, nCC, 1, 1)
+    battery_charged(1, nCC)
+    
  

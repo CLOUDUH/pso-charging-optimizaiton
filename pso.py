@@ -2,13 +2,13 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-28 21:07:36
+LastEditTime: 2022-05-29 10:41:14
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
 '''
 
-from battery_model import battery_charging
+from battery_model import battery_charged
 
 import sys
 import numpy as np
@@ -65,7 +65,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         for j in range(N):
 
-            [SoH[iter,j],t[iter,j]]= battery_charging(t_p, x[j],iter,j) # Battery simulation
+            [SoH[iter,j],t[iter,j]]= battery_charged(t_p, x[j],iter,j) # Battery simulation
             fx[iter,j] = f1(t[iter,j]) # Optimal function value
 
             if fxm[j] > fx[iter,j]:
