@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-28 21:03:41
+LastEditTime: 2022-06-03 11:34:56
 Description: 
     Solar energy calculate
     - Solar irradiation calculate
@@ -13,11 +13,16 @@ Description:
 import sys
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 
 vol_oc_ref = 60 # Open circuit voltage
 vol_mp_ref = 50 # Maximum power point voltage
 cur_sc_ref = 3.6 # Short circuit current
 cur_mp_ref = 3 # Maximum power point current
+
+pwr_tlr = 1e-6 # MPPT power tolerance
+volt_tlr = 1e-6 # MPPT voltage tolerance
+volt_d = 1e-2 # MPPT voltage distance
 
 def irradiation_cal(t:float, date:float, latitude:float):
     '''Solar irradiation calculate
@@ -61,20 +66,90 @@ def solar_cell(irradiation:float, Temp:float, volt:float):
     cur_sc = cur_sc_ref * (irradiation / 1000) * (1 + 0.0025 * (abs(Temp - 298.15)))
     cur_mp = cur_mp_ref * (irradiation / 1000) * (1 + 0.0025 * (abs(Temp - 298.15)))
 
-    # c2 = ((volt_mp / volt_oc) - 1) * (np.log(1 - (cur_mp / cur_sc))) ** -1
-    # c1 = (1 - (cur_mp / cur_sc)) * np.exp(-volt_mp / (c2 * volt_oc))
-    # cur = cur_sc *(1-c1 *(np.exp( volt / (c2 * volt_oc)) - 1))
+    try:
+        c2 = ((volt_mp / volt_oc) - 1) * (np.log(1 - (cur_mp / cur_sc))) ** -1
+        c1 = (1 - (cur_mp / cur_sc)) * np.exp(-volt_mp / (c2 * volt_oc))
+        cur = cur_sc *(1-c1 *(np.exp( volt / (c2 * volt_oc)) - 1))
+    except:
+        cur = 0
+    
+    pwr = cur * volt
+    pwr_mp = cur_mp * volt_mp # maximum power
 
-    cur = cur_mp # MPPT mode only, a simple way to build it
-    pwr = cur_mp * volt_mp
+    return [cur, pwr, pwr_mp]
 
-    return [cur, pwr]
+def mppt(volt_d:float, volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float, volt_out:float):
+    '''Solar Cell Maximum Power Point Tracker
+    Args: 
+        volt_d: voltage step
+        volt_k0: k-2 volt
+        volt_k1: k-1 volt
+        pwr_k0: k-1 power
+        pwr_k1: k power
+        volt_out: MPPT output voltage
+    Returns: 
+        volt_k0: k-1 volt 
+        volt_k1: k volt
+        cur_out: Battery current
+    Detail: 
+    '''
+
+    if pwr_k1 - pwr_k0 > pwr_tlr :
+        if volt_k1 - volt_k0 > volt_tlr:
+            volt_in = volt_k1 + volt_d
+        elif volt_k1 - volt_k0 < -volt_tlr:
+            volt_in = volt_k1 - volt_d
+        else:
+            volt_in = volt_k1
+    if pwr_k1 - pwr_k0 < pwr_tlr :
+        if volt_k1 - volt_k0 > volt_tlr:
+            volt_in = volt_k1 - volt_d
+        elif volt_k1 - volt_k0 < -volt_tlr:
+            volt_in = volt_k1 + volt_d
+        else:
+            volt_in = volt_k1
+
+    cur_out = pwr_k1 / volt_out
+    volt_k0 = volt_k1
+    volt_k1 = volt_in
+
+    return [volt_k1, volt_k0, cur_out]
 
 if __name__ == '__main__':
 
     t = 0
-    while t <= 24:
-        print(irradiation_cal(t, 60, 30))
-        t = t + 0.1
+    volt_k0 = vol_oc_ref
+    volt_k1 = volt_k0 - volt_d
+    pwr_k0 = 0
+    pwr_k1 = 0
+    volt_bat = 30
+    i = 0
+    T = []
+    Pwr = []
+    Volt = []
+    MP = []
+    
+    # while t <= 24:
+    #     print(irradiation_cal(t, 60, 30))
+    #     t = t + 0.1
 
-    print(solar_cell(1000, 298.15, 50))
+    # print(solar_cell(1000, 298.15, 50))
+
+    while t <= 24:
+        rad = irradiation_cal(t, 60, 30)
+        
+        [cur, pwr_k1, pwr_mp] = solar_cell(rad, 298.15, volt_k1)
+        [volt_k1, volt_k0, cur_bat] = mppt(volt_d, volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
+        pwr_k0 = pwr_k1
+
+        T.append(t)
+        Pwr.append(pwr_k1)
+        Volt.append(volt_k1)
+        MP.append(pwr_mp)
+
+        t = t + 1 / 3600
+
+    plt.plot(T, Pwr)
+    plt.plot(T, MP)
+    # plt.plot(T, Volt)
+    plt.show()

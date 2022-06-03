@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-29 10:41:14
+LastEditTime: 2022-05-31 13:24:22
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -38,8 +38,8 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     
     iter = 1  # Initial iteration
 
-    x = np.zeros((N,d)) # Pariticle Position (N-d)
-    v = np.zeros((N,d)) # Pariticle Velcocity (N-d)
+    x = np.zeros((N,d)) # Particle Position (N-d)
+    v = np.zeros((N,d)) # Particle Velcocity (N-d)
 
     Ilimit = np.matlib.repmat(np.array([[0],[3.3]]),1,d) # Charging current limits (2-d)
     vlimit = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d) # Velocity limits (2-d)
