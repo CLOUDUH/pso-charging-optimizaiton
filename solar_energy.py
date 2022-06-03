@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-03 11:34:56
+LastEditTime: 2022-06-03 11:49:39
 Description: 
     Solar energy calculate
     - Solar irradiation calculate
@@ -14,6 +14,7 @@ import sys
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from sat import sat
 
 vol_oc_ref = 60 # Open circuit voltage
 vol_mp_ref = 50 # Maximum power point voltage
@@ -72,6 +73,8 @@ def solar_cell(irradiation:float, Temp:float, volt:float):
         cur = cur_sc *(1-c1 *(np.exp( volt / (c2 * volt_oc)) - 1))
     except:
         cur = 0
+
+    cur = sat(cur, 0, math.inf)
     
     pwr = cur * volt
     pwr_mp = cur_mp * volt_mp # maximum power
@@ -109,9 +112,14 @@ def mppt(volt_d:float, volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float,
         else:
             volt_in = volt_k1
 
-    cur_out = pwr_k1 / volt_out
+    volt_in = sat(volt_in, 0, math.inf)
     volt_k0 = volt_k1
     volt_k1 = volt_in
+
+    try:
+        cur_out = sat(pwr_k1/volt_out, 0, math.inf)
+    except:
+        cur_out = 0
 
     return [volt_k1, volt_k0, cur_out]
 
