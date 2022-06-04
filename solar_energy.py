@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-03 11:49:39
+LastEditTime: 2022-06-03 16:46:01
 Description: 
     Solar energy calculate
     - Solar irradiation calculate
@@ -15,15 +15,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from sat import sat
-
-vol_oc_ref = 60 # Open circuit voltage
-vol_mp_ref = 50 # Maximum power point voltage
-cur_sc_ref = 3.6 # Short circuit current
-cur_mp_ref = 3 # Maximum power point current
-
-pwr_tlr = 1e-6 # MPPT power tolerance
-volt_tlr = 1e-6 # MPPT voltage tolerance
-volt_d = 1e-2 # MPPT voltage distance
 
 def irradiation_cal(t:float, date:float, latitude:float):
     '''Solar irradiation calculate
@@ -62,6 +53,11 @@ def solar_cell(irradiation:float, Temp:float, volt:float):
         cur: Solar cell current (A)
     '''
 
+    vol_oc_ref = 20 # Open circuit voltage
+    vol_mp_ref = 16 # Maximum power point voltage
+    cur_sc_ref = 1.2 # Short circuit current
+    cur_mp_ref = 1 # Maximum power point current
+
     volt_oc = vol_oc_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
     volt_mp = vol_mp_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
     cur_sc = cur_sc_ref * (irradiation / 1000) * (1 + 0.0025 * (abs(Temp - 298.15)))
@@ -81,7 +77,7 @@ def solar_cell(irradiation:float, Temp:float, volt:float):
 
     return [cur, pwr, pwr_mp]
 
-def mppt(volt_d:float, volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float, volt_out:float):
+def mppt_cal(volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float, volt_out:float):
     '''Solar Cell Maximum Power Point Tracker
     Args: 
         volt_d: voltage step
@@ -96,6 +92,11 @@ def mppt(volt_d:float, volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float,
         cur_out: Battery current
     Detail: 
     '''
+
+    pwr_tlr = 1e-6 # MPPT power tolerance
+    volt_tlr = 1e-6 # MPPT voltage tolerance
+    volt_d = 1e-2 # MPPT voltage distance
+
 
     if pwr_k1 - pwr_k0 > pwr_tlr :
         if volt_k1 - volt_k0 > volt_tlr:
@@ -126,38 +127,39 @@ def mppt(volt_d:float, volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float,
 if __name__ == '__main__':
 
     t = 0
-    volt_k0 = vol_oc_ref
-    volt_k1 = volt_k0 - volt_d
-    pwr_k0 = 0
-    pwr_k1 = 0
-    volt_bat = 30
-    i = 0
-    T = []
-    Pwr = []
-    Volt = []
-    MP = []
     
-    # while t <= 24:
-    #     print(irradiation_cal(t, 60, 30))
-    #     t = t + 0.1
-
-    # print(solar_cell(1000, 298.15, 50))
-
     while t <= 24:
-        rad = irradiation_cal(t, 60, 30)
+        print(irradiation_cal(t, 60, 30))
+        t = t + 0.1
+
+    print(solar_cell(1000, 298.15, 50))
+
+    # volt_k0 = vol_oc_ref
+    # volt_k1 = volt_k0 - volt_d
+    # pwr_k0 = 0
+    # pwr_k1 = 0
+    # volt_bat = 30
+    # i = 0
+    # T = []
+    # Pwr = []
+    # Volt = []
+    # MP = []
+
+    # while t <= 24:
+    #     rad = irradiation_cal(t, 60, 30)
         
-        [cur, pwr_k1, pwr_mp] = solar_cell(rad, 298.15, volt_k1)
-        [volt_k1, volt_k0, cur_bat] = mppt(volt_d, volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
-        pwr_k0 = pwr_k1
+    #     [cur, pwr_k1, pwr_mp] = solar_cell(rad, 298.15, volt_k1)
+    #     [volt_k1, volt_k0, cur_bat] = mppt_cal(volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
+    #     pwr_k0 = pwr_k1
 
-        T.append(t)
-        Pwr.append(pwr_k1)
-        Volt.append(volt_k1)
-        MP.append(pwr_mp)
+    #     T.append(t)
+    #     Pwr.append(pwr_k1)
+    #     Volt.append(volt_k1)
+    #     MP.append(pwr_mp)
 
-        t = t + 1 / 3600
+    #     t = t + 1 / 3600
 
-    plt.plot(T, Pwr)
-    plt.plot(T, MP)
-    # plt.plot(T, Volt)
-    plt.show()
+    # plt.plot(T, Pwr)
+    # plt.plot(T, MP)
+    # # plt.plot(T, Volt)
+    # plt.show()

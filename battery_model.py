@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-05-29 16:06:50
+LastEditTime: 2022-06-03 16:41:30
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -50,6 +50,7 @@ def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float):
     R0 = griddata(Grid, R0_Tab, (SoC, temp), method='linear')
     tau1 = griddata(Grid, tau1_Tab, (SoC, temp), method='linear')
     Vt = VO + I * (1 - np.exp(t_p / tau1)) + I * R0
+    Vt = Vt[0]
     SoC = SoC + t_p * I / (3600 * Qe)
 
     return [Vt, SoC]
@@ -101,7 +102,7 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float):
     # print(dQloss, Qloss, SoH)
     return [Qloss, SoH]
 
-def battery_model(t_p:float, I:float, V_t:float, SoC:float, Temp:float, Qloss:float, SoH:float):
+def battery_model(t_p:float, I:float, SoC:float, Temp:float, Qloss:float):
     '''Battery Charging Model
     Args:
         t_p: Step (s)
@@ -125,10 +126,10 @@ def battery_model(t_p:float, I:float, V_t:float, SoC:float, Temp:float, Qloss:fl
     Temp = thermal_model(t_p, I, Temp, SoC)
     [Qloss, SoH] = aging_model(t_p, I, Temp, Qloss)
 
-    print("Cur:", round(SoC, 2), "SoC:", round(Temp,2), "Temp:", \
-        round(Temp,2), "Qloss:", round(Qloss,2), "Qloss:", round(SoH,2))
+    # print("Cur:", round(I, 2), "SoC:", round(SoC, 2), "Temp:", round(Temp,2), \
+    #     "Qloss:", round(Qloss,2), "SoH:", round(SoH,2))
 
-    return [V_t, SoC, Temp, Qloss, SoH]
+    return [V_t, SoC, Temp, Qloss]
 
 def battery_charged(t_p:float, nCC:list): 
     '''Battery Charging Whole Process
