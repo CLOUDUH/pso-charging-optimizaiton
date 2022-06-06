@@ -8,7 +8,7 @@ Description: Battery charging optimization by PSO
     Optimization algorithm is particle swarm optimization
 '''
 
-from battery_model import battery_charged
+from model_battery import battery_charged
 
 import sys
 import numpy as np

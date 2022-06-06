@@ -2,15 +2,15 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-03 19:41:22
+LastEditTime: 2022-06-06 11:16:07
 Description: 
 '''
 
-from battery_model import battery_charged
-from battery_model import battery_model
-from solar_energy import solar_cell
-from solar_energy import irradiation_cal
-from solar_energy import mppt_cal
+from model_battery import battery_charged
+from model_battery import battery_model
+from model_photovoltaic import solar_cell
+from model_photovoltaic import irradiation_cal
+from model_photovoltaic import mppt_cal
 
 import sys
 import numpy as np
