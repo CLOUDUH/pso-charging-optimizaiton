@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-06-06 11:17:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-06 11:23:16
+LastEditTime: 2022-06-06 11:30:56
 Description: 
 '''
 
@@ -10,7 +10,7 @@ import math
 import matplotlib.pyplot as plt
 from utils.sat import sat
 
-from model_photovoltaic import solar_cell
+from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
 
 def mppt_cal(volt_k0:float, volt_k1:float, pwr_k0:float, pwr_k1:float, volt_out:float):
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     while t <= 24:
         rad = irradiation_cal(t, 60, 30)
         
-        [cur, pwr_k1, pwr_mp] = solar_cell(rad, 298.15, volt_k1)
+        [cur, pwr_k1, pwr_mp] = photovoltaic_model(rad, 298.15, volt_k1)
         [volt_k1, volt_k0, cur_bat] = mppt_cal(volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
         pwr_k0 = pwr_k1
 

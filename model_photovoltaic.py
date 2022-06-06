@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-06 11:22:48
+LastEditTime: 2022-06-06 11:30:34
 Description: 
     Solar energy calculate
     - Solar irradiation calculate
@@ -43,7 +43,7 @@ def irradiation_cal(t:float, date:float, latitude:float):
 
     return irradiation
 
-def solar_cell(irradiation:float, Temp:float, volt:float):
+def photovoltaic_model(irradiation:float, Temp:float, volt:float):
     '''Solar cell engineering model
     Args:
         irradiation: Unit area intensity of solar radiation (W/m^2)
@@ -87,6 +87,6 @@ if __name__ == '__main__':
         print(irradiation_cal(t, 60, 30))
         t = t + 0.1
 
-    print(solar_cell(1000, 298.15, 50))
+    print(photovoltaic_model(1000, 298.15, 50))
 
     
