@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-06 10:59:56
+LastEditTime: 2022-06-08 10:01:42
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -130,6 +130,8 @@ def battery_model(t_p:float, I:float, SoC:float, Temp:float, Qloss:float):
     #     "Qloss:", round(Qloss,2), "SoH:", round(SoH,2))
 
     return [V_t, SoC, Temp, Qloss]
+
+
 
 def battery_charged(t_p:float, nCC:list): 
     '''Battery Charging Whole Process
