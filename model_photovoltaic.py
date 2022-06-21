@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-06 11:30:34
+LastEditTime: 2022-06-08 15:15:58
 Description: 
     Solar energy calculate
     - Solar irradiation calculate
@@ -51,12 +51,14 @@ def photovoltaic_model(irradiation:float, Temp:float, volt:float):
         volt: Terminal voltage (V)
     Returns:
         cur: Solar cell current (A)
+        pwr: Solar cell power (W)
+        pwr_mp: Solar cell maximum power (W)
     '''
 
-    vol_oc_ref = 20 # Open circuit voltage
-    vol_mp_ref = 16 # Maximum power point voltage
-    cur_sc_ref = 1.2 # Short circuit current
-    cur_mp_ref = 1 # Maximum power point current
+    vol_oc_ref = 28 # Open circuit voltage
+    vol_mp_ref = 20 # Maximum power point voltage
+    cur_sc_ref = 2.4 # Short circuit current
+    cur_mp_ref = 2 # Maximum power point current
 
     volt_oc = vol_oc_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
     volt_mp = vol_mp_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))

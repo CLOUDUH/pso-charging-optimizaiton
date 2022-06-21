@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-08 10:01:42
+LastEditTime: 2022-06-21 21:56:28
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -131,9 +131,7 @@ def battery_model(t_p:float, I:float, SoC:float, Temp:float, Qloss:float):
 
     return [V_t, SoC, Temp, Qloss]
 
-
-
-def battery_charged(t_p:float, nCC:list): 
+def battery_charged(SoC_init:float, pwr_chrg:float, Temp:float): 
     '''Battery Charging Whole Process
     Args:
         t_p: Step (s)
@@ -145,51 +143,24 @@ def battery_charged(t_p:float, nCC:list):
     Detail:
         Do not need while loop
     '''
+    t_p = 1
+    SoC = SoC_init
+    t = 0
+    V_t = 3.0
+    cur_chrg = pwr_chrg / V_t
 
-    SoC = 0.1
-    Qloss = 0.001
-    SoH = 1 - ((Qloss / Qe) / 0.2)
-    Temp = 298.15
-    i = 1
-    E_ch = 0
+    while SoC < SoC_init + 0.2:
 
-    n = len(nCC)
-    if n == 5:
-        SoC_range = [0.2,0.4,0.6,0.8,0.999]
-    elif n == 4:
-        SoC_range = [0.25,0.5,0.75,0.999]
-    elif n == 3:
-        SoC_range = [0.4,0.8,0.999]
-    elif n == 2:
-        SoC_range = [0.7,0.999]
-    elif n == 1:
-        SoC_range = [0.999]
-    else:
-        raise ValueError("nCC list error")
+        [V_t, SoC] = equivalent_circuit_model(t_p, cur_chrg, Temp, SoC) 
+        Temp = thermal_model(t_p, cur_chrg, Temp, SoC)
 
-    for j in range(n):
+        print(t, round(cur_chrg,2), round(SoC, 2), round(Temp,2))
 
-        while SoC < SoC_range[j]:
+        t = t + 1
 
-            if nCC[j] <= 0.01:
-                break # Stop nonsence
+    t = t / 3600
 
-            if (i-1) * t_p >= 4 * 3600:
-                break # Stop falling
-
-            [V_t, SoC] = equivalent_circuit_model(t_p, nCC[j], Temp, SoC) 
-            Temp = thermal_model(t_p, nCC[j], Temp, SoC)
-            [Qloss, SoH] = aging_model(t_p, nCC[j], Temp, Qloss)
-
-            E_ch = E_ch + V_t * nCC[j] * t_p
-
-            print(i, round(nCC[j],2), round(SoC, 2), round(Temp,2), round(Qloss,2), round(SoH,2))
-
-            i = i + 1
-
-    t = (i - 1) * 0.05
-
-    return [SoH,t,E_ch]
+    return [t, V_t, Temp, cur_chrg]
 
 if __name__ == '__main__':
     '''test process

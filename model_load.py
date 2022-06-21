@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-06-06 11:26:59
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-08 11:21:27
+LastEditTime: 2022-06-08 16:36:51
 Description: A simple load model
 '''
 
@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 
 def load_model(t_p:float, t:float):
 
-    pwr_high = 30 # note this is the power of the load when UAV in high altitude
-    pwr_low = 20 # note this is the power of the load when UAV in low altitude
+    pwr_high = 10 # note this is the power of the load when UAV in high altitude
+    pwr_low = 7 # note this is the power of the load when UAV in low altitude
 
     t_up = 10 # time to rise from low altitude to high altitude
     t_high = 12 # time to stay in high altitude
-    t_down = 18 # time to fall from high altitude to low altitude
-    t_low = 20 # time to stay in low altitude
+    t_down = 17 # time to fall from high altitude to low altitude
+    t_low = 18 # time to stay in low altitude
 
     if t < t_up:
         pwr = pwr_low

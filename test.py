@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-08 11:32:25
+LastEditTime: 2022-06-20 20:41:05
 Description: 
 '''
 
@@ -33,7 +33,13 @@ def optimization_test(t_p:float):
     '''
 
     t = 0
-    seng = 0
+    
+    egy_solar = 0
+    egy_mppt = 0
+    egy_load = 0
+    egy_battery = 0
+    egy_remain = 0
+
     volt_k0 = 20
     volt_k1 = 19
     pwr_k0 = 0
@@ -57,11 +63,11 @@ def optimization_test(t_p:float):
 
     while t <= 24:
 
-        rad = irradiation_cal(t,60,30)
+        rad = irradiation_cal(t,180,30)
         [cur, pwr_k1, pwr_mp] = photovoltaic_model(rad, 298.15, volt_k1)
         [volt_k1, volt_k0, cur_bat] = mppt_cal(volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
-
         pwr_k0 = pwr_k1
+
         # [volt_bat, SoC, Temp, Qloss] = battery_model(t_p, cur_bat, SoC, Temp, Qloss)
 
         pwr_load = load_model(t_p, t)
@@ -70,8 +76,6 @@ def optimization_test(t_p:float):
         print("t:", round(t,2), "Cur:", round(cur_bat, 2), "SoC:", round(SoC, 2), \
             "Temp:", round(Temp,2), "Qloss:", round(Qloss,2))
 
-        
-
         t_list.append(t)
         pwr_solar_list.append(pwr_k1)
         pwr_mppt_list.append(pwr_mp)
@@ -79,7 +83,10 @@ def optimization_test(t_p:float):
         pwr_remain_list.append(pwr_remain)
 
         volt_list.append(volt_k1)
-        seng = seng + pwr_k1 * t_p
+        egy_solar = egy_solar + pwr_k1 * t_p
+        egy_mppt = egy_mppt + pwr_mp * t_p
+        egy_load = egy_load + pwr_load * t_p
+        egy_remain = egy_remain + pwr_remain * t_p
 
         t = t + t_p/3600
 
@@ -88,12 +95,15 @@ def optimization_test(t_p:float):
     plt.plot(t_list, pwr_load_list)
     plt.plot(t_list, pwr_remain_list)
     plt.show()
+
+    print("Egy_solar:", round(egy_solar,2), "Egy_mppt:", round(egy_mppt,2), \
+        "Egy_load:", round(egy_load,2), "Egy_remain:", round(egy_remain,2))
     
-    return seng
+    return None
 
 if __name__ == '__main__':
     
-    E_m = optimization_test(t_p)
+    optimization_test(t_p)
 
     # nCC = [1.65, 1, 0.5]
     # [SoH,t,E_ch] = battery_charged(t_p,nCC)
