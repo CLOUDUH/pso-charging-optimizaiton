@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-06-20 15:33:01
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-21 22:41:18
+LastEditTime: 2022-06-22 10:33:10
 Description: 
 '''
 
@@ -130,7 +130,7 @@ def policy_generation(t_0:float, factor:list, Q_e:float, date:int, latitude:floa
     t_5 = t_4 + t
 
     if t_1+t_2+t_3+t_4+t_5 > 10: return 0
-    if t_1+t_2+t_3+t_4+t_5 < 4: return 0
+    if t_1+t_2+t_3+t_4+t_5 < 4: return 0   #
 
     policy = [cc1, cc2, cc3, cc4, cc5]
 
