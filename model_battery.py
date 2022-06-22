@@ -2,14 +2,13 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-08 10:01:42
+LastEditTime: 2022-06-22 20:53:16
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
 '''
 
 import sys
-from unittest import expectedFailure
 import numpy as np
 from scipy.interpolate import griddata
 import pandas as pd
@@ -78,7 +77,7 @@ def thermal_model(t_p:float, I:float, Temp:float, SoC:float):
 
     return Temp
 
-def aging_model(t_p:float, I:float, Temp:float, Qloss:float): 
+def aging_model(t_p:float, I:float, Temp:float, Qloss:float): #
     '''Battery Aging Model
     Args:
         t_p: Step (s)
@@ -126,14 +125,12 @@ def battery_model(t_p:float, I:float, SoC:float, Temp:float, Qloss:float):
     Temp = thermal_model(t_p, I, Temp, SoC)
     [Qloss, SoH] = aging_model(t_p, I, Temp, Qloss)
 
-    # print("Cur:", round(I, 2), "SoC:", round(SoC, 2), "Temp:", round(Temp,2), \
-    #     "Qloss:", round(Qloss,2), "SoH:", round(SoH,2))
+    print("Cur:", round(I, 2), "SoC:", round(SoC, 2), "Temp:", round(Temp,2), \
+        "Qloss:", round(Qloss,2), "SoH:", round(SoH,2))
 
-    return [V_t, SoC, Temp, Qloss]
+    return [V_t, SoC, Temp, Qloss, SoH]
 
-
-
-def battery_charged(t_p:float, nCC:list): 
+def battery_charged(nCC:list): 
     '''Battery Charging Whole Process
     Args:
         t_p: Step (s)
@@ -145,7 +142,7 @@ def battery_charged(t_p:float, nCC:list):
     Detail:
         Do not need while loop
     '''
-
+    t_p = 1
     SoC = 0.1
     Qloss = 0.001
     SoH = 1 - ((Qloss / Qe) / 0.2)
