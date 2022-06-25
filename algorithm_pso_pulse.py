@@ -2,13 +2,12 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-22 22:48:47
+LastEditTime: 2022-06-25 11:38:17
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
 '''
 
-from cmath import inf
 from model_pulse import battery_pulse_charged
 from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
@@ -19,29 +18,75 @@ import sys
 import numpy as np
 import numpy.matlib
 
-def object_func(SoH:float, t:float, policy:list, beta:float):
+def object_func(SoH:float, t:float, policy:list, beta:float, t_list:list, remain_cur_list:list):
+    '''Object Function Calculate
+    Args: 
+        SoH: State of Health
+        t: Total charging time (s)
+        policy: Charging policy (list)
+        beta: Weight coeffeicent 
+    Returns:
+        J: Cost
+    Description:
+        The transformation of the objective function is 
+        determined by the weight coefficients.
+        except before that, when the particle 
+        exceeds the limit, it will become infinite
+    '''
 
     t_m = 2*3600 # Empirical charging time
+    Qe = 3.3 # Battery Capacity (Ah)
+    ratio_pulse = 0.2 # Duty ratio of pulse charging
 
-    J = beta * t / t_m + (1 - beta) * SoH
+    J = beta * t / t_m + (1 - beta) * SoH 
 
-    if t < 2 * 3600 or t > 10 * 3600: J = inf
+    t1 = np.interp(policy[0], remain_cur_list, t_list)
+    t2 = t1 + 0.2 * Qe / policy[0]
+    t3 = t2 + 0.2 * Qe / policy[1]
+    t4 = t3 + 0.2 * Qe / policy[2]
+    t5 = t4 + 0.2 * Qe / (policy[3] * ratio_pulse)
 
+    cur_remain_2 = np.interp(t2, t_list, remain_cur_list)
+    cur_remain_3 = np.interp(t3, t_list, remain_cur_list)
+    cur_remain_4 = np.interp(t4, t_list, remain_cur_list)
+    cur_remain_5 = np.interp(t5, t_list, remain_cur_list)
+
+    if cur_remain_2 < policy[0] or cur_remain_3 < policy[1] or cur_remain_4 < policy[2] or cur_remain_5 < policy[3] * ratio_pulse:
+        J = np.inf
+
+    if t < 2 * 3600 or t > 10 * 3600: J = np.inf
+    if SoH < 0: J = np.inf
     return J
 
-def remain_power_calc(date:int, latitude:float):
+def clac_remain_current(date:int, latitude:float, vol_bat:float):
+    '''Calculate Remain Power and Current
+    Args:
+        date: Today 0-365 
+        latitude: (°)
+        vol_bat: Battery voltage (V)
+    Returns:
+        cur_remain_list: Remain current list (A)
+    '''
 
     t = 0
     Temp = 298.15
-    cur_bat = 3.0
+    t_list = []
+    cur_remain_list = []
 
     while t <= 24:
 
         rad = irradiation_cal(t, date, latitude)
-        [cur, pwr_k1, pwr_mp] = photovoltaic_model(rad, Temp, volt_k1)
-        [volt_k1, volt_k0, cur_bat] = mppt_cal(volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
+        [cur_solar, _, pwr_solar] = photovoltaic_model(rad, Temp, vol_bat)
+        pwr_load = load_model(t)
+        cur_loar = pwr_load / vol_bat
 
-    return 
+        cur_remain = cur_solar - cur_loar
+        cur_remain_list.append(cur_remain)
+
+        t = t + 1/3600
+        t_list.append(t)
+
+    return [t_list, cur_remain_list]
 
 
 def particle_swarm_optimization(N:int, d:int, ger:int):
@@ -57,16 +102,22 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         fx: Objective function value of each iteration of each particle (ger-N)
         fxm: Optimal objective function value of particle (N-1)
     '''
-
+    date = 180 # Today 0-365
+    latitude = 30 # (°)
+    vol_bat = 3.6 # Battery voltage (V)
     w = 0.729 # Inertial weight
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
     beta = 1 # Weight coefficient 1: fastest; 0: healthiest
-    ger = 50 # The maximum number of iterations 
+    ger = 50 # The maximum number of iterations  
     iter = 1  # Initial iteration
+    np.random.seed(N * d * ger) # set seed
 
+    # Initialize the particle position and velocity
     x = np.zeros((N,d)) # Particle Position (N-d)
     v = np.zeros((N,d)) # Particle Velcocity (N-d)
+
+    [t, cur_remian] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
 
     xlimit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
     xlimit_pulse = np.array([[0],[6.6]])
@@ -76,11 +127,14 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     vlimit_pulse = np.array([[-1],[1]])
     vlimit = np.hstack((vlimit_cc, vlimit_pulse)) # Velocity limits (2-d)
 
-    np.random.seed(N * d * ger) # set seed
+    # Initialize the particle position
     for i in range(d):
         x[:,i] = np.matlib.repmat(xlimit[0,i],1,N) + (xlimit[1,i] - xlimit[0,i]) * np.random.rand(1,N)
+        
+    # Initialize the particle velocity
+    for i in range(d):
         v[:,i] = np.matlib.repmat(vlimit[0,i],1,N) + (vlimit[1,i] - vlimit[0,i]) * np.random.rand(1,N)
-
+        
     xm = x # The best known position of particle (N-d)
     ym = np.zeros((1,d)) # The best known position of entire swarm (1-d)
     SoH = np.zeros((ger,N)) # SoH of each iteration of each particle (ger-N)
@@ -93,7 +147,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         for j in range(N):
             [t[iter,j], _, SoH[iter,j], _]= battery_pulse_charged(x[j]) # Battery simulation
-            fx[iter,j] = f1(t[iter,j]) # Optimal function value
+            fx[iter,j] = object_func(SoH[iter,j], t[iter,j], x[j], 0.5, t, cur_remian) # Optimal function value
 
             if fxm[j] > fx[iter,j]:
                 fxm[j] = fx[iter,j]

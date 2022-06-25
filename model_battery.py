@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-22 20:53:16
+LastEditTime: 2022-06-25 10:38:28
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -21,7 +21,7 @@ tau1_Tab = pd.read_csv("utils/tau1.csv",header=None)
 Grid = pd.read_csv("utils/Grid.csv",header=None)
 
 Tf = 298.15 # Homoeothermy
-Qe = 3.3 # Battery Capacity Ah
+Qe = 3.3 # Battery Capacity (Ah)
 h = 40.106 # Heat transfer coefficient W/(m^2*K)
 c = 800 # Specific heat capacity J/(kg*K)
 A = 0.004317 # Heat exchange area at the cell surface m^2

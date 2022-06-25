@@ -9,8 +9,9 @@ Description: A simple load model
 import numpy as np
 import matplotlib.pyplot as plt
 
-def load_model(t_p:float, t:float):
+def load_model(t:float):
 
+    t_p = 1
     pwr_high = 30 # note this is the power of the load when UAV in high altitude
     pwr_low = 20 # note this is the power of the load when UAV in low altitude
 
