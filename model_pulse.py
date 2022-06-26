@@ -9,7 +9,7 @@ Description:
 import numpy as np
 from model_battery import battery_model
 
-def battery_pulse_charged(policy:list):
+def battery_pulse_charged(policy:list, thread:int):
     '''
     Args: 
         policy: Charging policy [CC1, CC2, CC3, Pulse] (list) 
@@ -36,15 +36,18 @@ def battery_pulse_charged(policy:list):
     while SoC <= 0.3:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc1, SoC, Temp, Q_loss)
         t = t + 1
-
+    print(thread, SoC, SoH, Temp)
+    
     while SoC <= 0.6:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc2, SoC, Temp, Q_loss)
         t = t + 1
-
+    print(thread, SoC, SoH, Temp)
+    
     while SoC <= 0.9:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc3, SoC, Temp, Q_loss)
         t = t + 1
-
+    print(thread, SoC, SoH, Temp)
+    
     while SoC <= 0.999: # pulse charging
         t_start = t
         while t < t_start + cycle_pulse * ratio_pulse:

@@ -2,12 +2,14 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-25 11:38:17
+LastEditTime: 2022-06-26 16:30:21
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
 '''
 
+from threading import Thread
+from utils.return_thread import ReturnThread
 from model_pulse import battery_pulse_charged
 from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
@@ -51,7 +53,8 @@ def object_func(SoH:float, t:float, policy:list, beta:float, t_list:list, remain
     cur_remain_4 = np.interp(t4, t_list, remain_cur_list)
     cur_remain_5 = np.interp(t5, t_list, remain_cur_list)
 
-    if cur_remain_2 < policy[0] or cur_remain_3 < policy[1] or cur_remain_4 < policy[2] or cur_remain_5 < policy[3] * ratio_pulse:
+    if cur_remain_2 < policy[0] or cur_remain_3 < policy[1] or \
+        cur_remain_4 < policy[2] or cur_remain_5 < policy[3] * ratio_pulse:
         J = np.inf
 
     if t < 2 * 3600 or t > 10 * 3600: J = np.inf
@@ -87,7 +90,6 @@ def clac_remain_current(date:int, latitude:float, vol_bat:float):
         t_list.append(t)
 
     return [t_list, cur_remain_list]
-
 
 def particle_swarm_optimization(N:int, d:int, ger:int):
     '''Particle swarm optimization
@@ -145,10 +147,22 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     while iter <= ger:
 
-        for j in range(N):
-            [t[iter,j], _, SoH[iter,j], _]= battery_pulse_charged(x[j]) # Battery simulation
-            fx[iter,j] = object_func(SoH[iter,j], t[iter,j], x[j], 0.5, t, cur_remian) # Optimal function value
+        threads = []
 
+        for j in range(N): 
+            exec(f'th{j} = ReturnThread(battery_pulse_charged, (x[{j}], {j},))')
+            exec(f'threads.append(th{j})')
+        
+        for j in range(N): 
+            threads[j].start() # Parallel computing
+
+        for j in range(N):
+            threads[j].join() # Wait all thread to finish
+
+        for j in range(N): 
+            [t[iter,j], _, SoH[iter,j], _]= threads[j].get_result() # get result of each thread
+            fx[iter,j] = object_func(SoH[iter,j], t[iter,j], x[j], 0.5, t, cur_remian) # Optimal function value
+            
             if fxm[j] > fx[iter,j]:
                 fxm[j] = fx[iter,j]
                 xm[j] = x[j]
@@ -162,7 +176,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         # Position saturation
         for k in range(d):
-            hsat = np.where(v[:,k] < vlimit[0,k], 1, 0)
+            hsat = np.where(v[:,k] < vlimit[0,k], 1, 0) #
             lsat = np.where(v[:,k] > vlimit[1,k], 2, 0)
 
             for j in range(N):

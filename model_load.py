@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-06-06 11:26:59
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-08 11:21:27
+LastEditTime: 2022-06-26 16:02:03
 Description: A simple load model
 '''
 
