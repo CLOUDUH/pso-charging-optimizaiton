@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-26 16:02:56
+LastEditTime: 2022-06-26 17:17:52
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.

@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-26 16:30:21
+LastEditTime: 2022-06-26 19:07:47
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -119,7 +119,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     x = np.zeros((N,d)) # Particle Position (N-d)
     v = np.zeros((N,d)) # Particle Velcocity (N-d)
 
-    [t, cur_remian] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
+    [t, cur_remain] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
 
     xlimit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
     xlimit_pulse = np.array([[0],[6.6]])
@@ -161,7 +161,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         for j in range(N): 
             [t[iter,j], _, SoH[iter,j], _]= threads[j].get_result() # get result of each thread
-            fx[iter,j] = object_func(SoH[iter,j], t[iter,j], x[j], 0.5, t, cur_remian) # Optimal function value
+            fx[iter,j] = object_func(SoH[iter,j], t[iter,j], x[j], 0.5, t, cur_remain) # Optimal function value
             
             if fxm[j] > fx[iter,j]:
                 fxm[j] = fx[iter,j]
@@ -205,3 +205,4 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
 if __name__ == '__main__':
     particle_swarm_optimization(20, 4, 50)
+    # print(object_func(0.8, ))

@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-06-22 20:52:04
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-25 10:42:36
+LastEditTime: 2022-06-26 19:06:23
 Description: 
 '''
 
@@ -36,17 +36,17 @@ def battery_pulse_charged(policy:list, thread:int):
     while SoC <= 0.3:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc1, SoC, Temp, Q_loss)
         t = t + 1
-    print(thread, SoC, SoH, Temp)
+    print(thread, "\tCC1\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
     
     while SoC <= 0.6:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc2, SoC, Temp, Q_loss)
         t = t + 1
-    print(thread, SoC, SoH, Temp)
+    print(thread, "\tCC2\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
     
     while SoC <= 0.9:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc3, SoC, Temp, Q_loss)
         t = t + 1
-    print(thread, SoC, SoH, Temp)
+    print(thread, "\tCC3\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
     
     while SoC <= 0.999: # pulse charging
         t_start = t
@@ -57,8 +57,10 @@ def battery_pulse_charged(policy:list, thread:int):
             [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, 0, SoC, Temp, Q_loss)
             t = t + 1
 
+    print(thread, "\tPulse\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+
     return [t, Q_loss, SoH, Temp]
 
 if __name__ == '__main__':
     policy = [1, 0.6, 0.4, 3]
-    battery_pulse_charged(policy)
+    battery_pulse_charged(policy, 1)
