@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-26 17:17:52
+LastEditTime: 2022-06-27 22:02:42
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -188,12 +188,65 @@ def battery_charged(nCC:list):
 
     return [SoH,t,E_ch]
 
-if __name__ == '__main__':
-    '''test process
-    you can run this file directly and check
+def battery_pulse_charged(policy:list, thread:int):
+    '''
+    Args: 
+        policy: Charging policy [CC1, CC2, CC3, Pulse] (list) 
+        thread: Thread number (int)
+    Returns:
+        t: Charging time (s)
+        Q_loss: Capacity loss (Ah)
+        SoH: State of health 
+        Temp: Temperature (K)
     '''
     
-    nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
-    battery_charged(1, nCC)
+    t_p = 1
+    Temp = 298.15
+    Q_loss = 0.001
+    SoC = 0.01
+    t = 0
+    ratio_pulse = 0.2 # Duty ratio of pulse charging
+    cycle_pulse = 10 # Cycle of the pulse charging
+
+    cur_cc1 = policy[0]
+    cur_cc2 = policy[1]
+    cur_cc3 = policy[2]
+    cur_pulse = policy[3]
+
+    while SoC <= 0.3:
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc1, SoC, Temp, Q_loss)
+        t = t + 1
+    print(thread, "\tCC1\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+    
+    while SoC <= 0.6:
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc2, SoC, Temp, Q_loss)
+        t = t + 1
+    print(thread, "\tCC2\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+    
+    while SoC <= 0.9:
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc3, SoC, Temp, Q_loss)
+        t = t + 1
+    print(thread, "\tCC3\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+    
+    while SoC <= 0.999: # pulse charging
+        t_start = t
+        while t < t_start + cycle_pulse * ratio_pulse:
+            [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_pulse, SoC, Temp, Q_loss)
+            t = t + 1
+        while t < t_start + cycle_pulse * (1 - ratio_pulse):
+            [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, 0, SoC, Temp, Q_loss)
+            t = t + 1
+
+    print(thread, "\tPulse\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+
+    return [t, Q_loss, SoH, Temp]
+
+if __name__ == '__main__':
+    
+    # nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
+    # battery_charged(1, nCC)
+
+    policy = [1.0, 0.8, 0.6, 2.0]
+    battery_pulse_charged(policy, 1)
     
  

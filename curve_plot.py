@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-22 22:42:45
+LastEditTime: 2022-06-27 11:32:47
 Description: 
 '''
 
@@ -57,14 +57,14 @@ def optimization_test(t_p:float):
 
     while t <= 24:
 
-        rad = irradiation_cal(t,60,30)
+        rad = irradiation_cal(t,180,30)
         [cur, pwr_k1, pwr_mp] = photovoltaic_model(rad, 298.15, volt_k1)
         [volt_k1, volt_k0, cur_bat] = mppt_cal(volt_k0, volt_k1, pwr_k0, pwr_k1, volt_bat)
 
         pwr_k0 = pwr_k1
         # [volt_bat, SoC, Temp, Qloss] = battery_model(t_p, cur_bat, SoC, Temp, Qloss)
 
-        pwr_load = load_model(t_p, t)
+        pwr_load = load_model(t)
         pwr_remain = pwr_k1 - pwr_load
 
         print("t:", round(t,2), "Cur:", round(cur_bat, 2), "SoC:", round(SoC, 2), \

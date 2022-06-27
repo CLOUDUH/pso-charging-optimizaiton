@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-26 19:07:47
+LastEditTime: 2022-06-27 22:13:25
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -10,7 +10,7 @@ Description: Battery charging optimization by PSO
 
 from threading import Thread
 from utils.return_thread import ReturnThread
-from model_pulse import battery_pulse_charged
+from model_battery import battery_pulse_charged
 from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
 from model_mppt import mppt_cal
@@ -19,6 +19,7 @@ from model_load import load_model
 import sys
 import numpy as np
 import numpy.matlib
+import matplotlib.pyplot as plt
 
 def object_func(SoH:float, t:float, policy:list, beta:float, t_list:list, remain_cur_list:list):
     '''Object Function Calculate
@@ -75,19 +76,24 @@ def clac_remain_current(date:int, latitude:float, vol_bat:float):
     Temp = 298.15
     t_list = []
     cur_remain_list = []
+    cur_solar_list = []
 
     while t <= 24:
 
         rad = irradiation_cal(t, date, latitude)
         [cur_solar, _, pwr_solar] = photovoltaic_model(rad, Temp, vol_bat)
         pwr_load = load_model(t)
-        cur_loar = pwr_load / vol_bat
+        cur_load = pwr_load / vol_bat
 
-        cur_remain = cur_solar - cur_loar
-        cur_remain_list.append(cur_remain)
-
+        cur_remain = cur_solar - cur_load
+        if cur_remain < 0: cur_remain = 0
         t = t + 1/3600
+        
+        cur_remain_list.append(cur_remain)
         t_list.append(t)
+
+    # plt.plot(t_list, cur_remain_list)
+    # plt.show()
 
     return [t_list, cur_remain_list]
 
@@ -104,6 +110,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         fx: Objective function value of each iteration of each particle (ger-N)
         fxm: Optimal objective function value of particle (N-1)
     '''
+
     date = 180 # Today 0-365
     latitude = 30 # (°)
     vol_bat = 3.6 # Battery voltage (V)
@@ -204,5 +211,6 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     return [SoH, t, ym, fym, fx, fxm]
 
 if __name__ == '__main__':
-    particle_swarm_optimization(20, 4, 50)
-    # print(object_func(0.8, ))
+    [SoH, t, ym, fym, fx, fxm] = particle_swarm_optimization(20, 4, 50)
+
+    # [t, cur_remain] = clac_remain_current(180, 30, 3.6)
