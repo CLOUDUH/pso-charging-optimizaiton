@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-29 10:39:11
+LastEditTime: 2022-06-29 12:06:24
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -155,15 +155,15 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     while iter <= ger:
 
-        pool = mp.Pool()
-        processes = []
+        pool = mp.Pool() # create a multiprocessing pool
+        processes = [] # create a list of processes
 
         for j in range(N): 
             args = x[j]
-            args = np.insert(args,4,[iter,j])
+            args = np.insert(args,4,[iter,j]) # add iteration and particle number
             processes.append(args)
 
-        results = pool.map(battery_pulse_charged, processes)
+        results = pool.map(battery_pulse_charged, processes) # map the function to the pool !!!
 
         pool.close() # Parallel computing
         pool.join() # Wait all thread to finish

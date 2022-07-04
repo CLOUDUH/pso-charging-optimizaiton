@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-28 22:20:19
+LastEditTime: 2022-06-29 15:53:56
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -21,17 +21,7 @@ R1_Tab = pd.read_csv("utils/R1.csv",header=None)
 tau1_Tab = pd.read_csv("utils/tau1.csv",header=None)
 Grid = pd.read_csv("utils/Grid.csv",header=None)
 
-Tf = 298.15 # Homoeothermy
 Qe = 3.3 # Battery Capacity (Ah)
-h = 40.106 # Heat transfer coefficient W/(m^2*K)
-c = 800 # Specific heat capacity J/(kg*K)
-A = 0.004317 # Heat exchange area at the cell surface m^2
-m =0.0475 # Battery mass kg
-z = 0.4 # Order of Ah throughput
-B = 130 # Pre-exponential factor
-E_a = 18461 # Activation energy for cycle aging J/mol
-R = 8.314 # Ideal gas constant J/(kg*K)
-alpha = 32 # Coefficient for aging acceleration caused by the current
 
 def equivalent_circuit_model(t_p:float, I:float, Temp:float, SoC:float): 
     '''Battery 1-RC Equivalent Circuit Model
@@ -66,6 +56,12 @@ def thermal_model(t_p:float, I:float, Temp:float, SoC:float):
         Temp: Battery temperature
     '''
 
+    h = 40.106 # Heat transfer coefficient W/(m^2*K)
+    A = 0.004317 # Heat exchange area at the cell surface m^2
+    Tf = 298.15 # Homoeothermy
+    m =0.0475 # Battery mass kg
+    c = 800 # Specific heat capacity J/(kg*K)
+
     temp = Temp - 273.15
     R0 = griddata(Grid, R0_Tab, (SoC, temp), method='nearest')
     R0 = R0[0]
@@ -90,6 +86,12 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float): #
         SoH: State of health 
     '''
 
+    z = 0.55 # Order of Ah throughput
+    E_a = 31700 # Activation energy for cycle aging J/mol
+    R = 8.314 # Ideal gas constant J/(kg*K)
+    alpha = 370.3 / Qe # Coefficient for aging acceleration caused by the current
+    B = -47.836 * (I / Qe) ** 3 + 1215 * (I / Qe) ** 2 - 9418.9 * (I / Qe) + 36042
+
     try:
         b = (Qloss / (B * np.exp((-E_a + alpha * abs(I)) / (R * Temp)))) ** (1 - (1 / z))
     except:
@@ -99,7 +101,6 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float): #
     Qloss = Qloss + dQloss * t_p
     SoH = 1 - ((Qloss / Qe) / 0.2)
 
-    # print(dQloss, Qloss, SoH)
     return [Qloss, SoH]
 
 def battery_model(t_p:float, I:float, SoC:float, Temp:float, Qloss:float):
@@ -222,7 +223,7 @@ def battery_pulse_charged(policy:list):
         if t >= 12 * 3600: # Timeout
             flag = 1 
             break
-    # print(thread, "\tCC1\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+    time_cc1 = t
     
     while flag == 0 and SoC <= 0.6:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc2, SoC, Temp, Q_loss)
@@ -230,7 +231,7 @@ def battery_pulse_charged(policy:list):
         if t >= 12 * 3600: # Timeout
             flag = 1 
             break
-    # print(thread, "\tCC2\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+    time_cc2 = t - time_cc1
     
     while flag == 0 and SoC <= 0.9:
         [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc3, SoC, Temp, Q_loss)
@@ -238,7 +239,7 @@ def battery_pulse_charged(policy:list):
         if t >= 12 * 3600: # Timeout
             flag = 1 
             break
-    # print(thread, "\tCC3\tt:", t, "\tSoH:", round(SoH, 3), "\tTemp", round(Temp, 3))
+    time_cc3 = t - time_cc2
     
     while flag ==0 and SoC <= 0.999: # pulse charging
         t_start = t
@@ -251,9 +252,10 @@ def battery_pulse_charged(policy:list):
         if t >= 12 * 3600: # Timeout
             flag = 1 
             break
+    time_pulse = t - time_cc3
 
     print(iter, thread, "\tPolicy:", policy[:4],"\tSoH(%):", round(SoH, 3), "\tt(h):", round(t/3600,3), "\tTemp(K)", round(Temp, 3))
-
+    print()
     return [t, Q_loss, SoH, Temp, flag]
 
 if __name__ == '__main__':
@@ -261,4 +263,6 @@ if __name__ == '__main__':
     # nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
     # battery_charged(1, nCC)
     policy = [1.0, 0.8, 0.6, 2.0, 1, 16]
+    policy = [0.1, 0.1, 0.1, 0.1, 1, 16]
     battery_pulse_charged(policy)
+ 
