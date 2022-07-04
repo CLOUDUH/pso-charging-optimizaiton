@@ -255,7 +255,6 @@ def battery_pulse_charged(policy:list):
     time_pulse = t - time_cc3
 
     print(iter, thread, "\tPolicy:", policy[:4],"\tSoH(%):", round(SoH, 3), "\tt(h):", round(t/3600,3), "\tTemp(K)", round(Temp, 3))
-    print()
     return [t, Q_loss, SoH, Temp, flag]
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-04 14:57:13
+LastEditTime: 2022-07-04 22:18:57
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -14,58 +14,14 @@ from model_photovoltaic import irradiation_cal
 from model_mppt import mppt_cal
 from model_load import load_model
 
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 
-def obj_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_list:list, remain_cur_list:list):
-    '''Object Function Calculate
-    Args: 
-        SoH: State of Health
-        t: Total charging time (s)
-        policy: Charging policy (list)
-        beta: Weight coeffeicent 
-    Returns:
-        J: Cost
-    Description:
-        The transformation of the objective function is 
-        determined by the weight coefficients.
-        except before that, when the particle 
-        exceeds the limit, it will become infinite
-    '''
+Qe = 3.3 # Battery Capacity (Ah)
+ratio_pulse = 0.2 # Duty ratio of pulse charging
 
-    t_m = 2*3600 # Empirical charging time
-    Qe = 3.3 # Battery Capacity (Ah)
-    ratio_pulse = 0.2 # Duty ratio of pulse charging
-
-    J = beta * t / t_m + (1 - beta) * SoH
-    if flag == 1: J = np.inf
-    if t < 2 * 3600 or t > 10 * 3600: J = np.inf
-    if SoH < 0: J = np.inf
-
-    try:
-        t1 = np.interp(policy[0], remain_cur_list, t_list)
-    except:
-        J = np.inf
-        
-    t2 = t1 + 0.2 * Qe / policy[0]
-    t3 = t2 + 0.2 * Qe / policy[1]
-    t4 = t3 + 0.2 * Qe / policy[2]
-    t5 = t4 + 0.2 * Qe / (policy[3] * ratio_pulse)
-
-    cur_remain_2 = np.interp(t2, t_list, remain_cur_list)
-    cur_remain_3 = np.interp(t3, t_list, remain_cur_list)
-    cur_remain_4 = np.interp(t4, t_list, remain_cur_list)
-    cur_remain_5 = np.interp(t5, t_list, remain_cur_list)
-
-    if cur_remain_2 < policy[0] or cur_remain_3 < policy[1] or \
-        cur_remain_4 < policy[2] or cur_remain_5 < policy[3] * ratio_pulse:
-        J = np.inf
-
-    return J
-
-def clac_remain_current(date:int, latitude:float, vol_bat:float):
+def clac_pv_current(date:int, latitude:float, vol_bat:float):
     '''Calculate Remain Power and Current
     Args:
         date: Today 0-365 
@@ -97,6 +53,72 @@ def clac_remain_current(date:int, latitude:float, vol_bat:float):
 
     return [t_list, cur_remain_list]
 
+def clac_remain_current(policy:list, t_pv_list:list, cur_pv_list:list):
+    '''Calculate Remain Current
+    Args:
+        policy: Policy list
+        t_pv_list: Time list
+        cur_pv_list: Current list
+    Returns:   
+        t_remain_list: Remain time list (h)
+        cur_remain_list: Remain current list (A)
+    '''
+
+    try:
+        t1 = np.interp(policy[0], cur_pv_list, t_pv_list)
+    except:
+        t1 = np.inf
+ 
+    t2 = t1 + 0.2 * Qe / policy[0]
+    t3 = t2 + 0.2 * Qe / policy[1]
+    t4 = t3 + 0.2 * Qe / policy[2]
+    t5 = t4 + 0.2 * Qe / (policy[3] * ratio_pulse)
+
+    t_remain_list = [t1, t2, t3, t4, t5]
+
+    cur_remain_2 = np.interp(t2, t_pv_list, cur_pv_list)
+    cur_remain_3 = np.interp(t3, t_pv_list, cur_pv_list)
+    cur_remain_4 = np.interp(t4, t_pv_list, cur_pv_list)
+    cur_remain_5 = np.interp(t5, t_pv_list, cur_pv_list)
+
+    cur_remain_list = [cur_remain_2, cur_remain_3, cur_remain_4, cur_remain_5]
+
+    return [t_remain_list, cur_remain_list]
+
+def obj_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_remain_list:list, cur_remain_list:list):
+    '''Object Function Calculate
+    Args: 
+        SoH: State of Health
+        t: Total charging time (s)
+        flag: Timeout
+        policy: Charging policy (list)
+        beta: Weight coeffeicent 
+        cur_remain_list: Remain current list (list)
+    Returns:
+        J: Cost
+    Description:
+        The transformation of the objective function is 
+        determined by the weight coefficients.
+        except before that, when the particle 
+        exceeds the limit, it will become infinite
+    '''
+    t_m = 6*3600 # Empirical charging time
+
+    J = beta * t / t_m + (1 - beta) * SoH
+
+    if flag == 1: J = np.inf
+    if t < 2 * 3600 or t > 10 * 3600: J = np.inf
+    if SoH < 0: J = np.inf
+
+    if t_remain_list[0] == np.inf: J = np.inf
+ 
+    for i in range(len(cur_remain_list)):
+        if t_remain_list[i] < policy[i]:
+            J = np.inf
+            break
+
+    return J
+
 def particle_swarm_optimization(N:int, d:int, ger:int):
     '''Particle swarm optimization
     Args:
@@ -118,15 +140,14 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
     beta = 1 # Weight coefficient 1: fastest; 0: healthiest
-    ger = 50 # The maximum number of iterations  
-    iter = 1  # Initial iteration
+    iter = 0  # Initial iteration
     np.random.seed(N * d * ger) # set seed
 
     # Initialize the particle position and velocity
     x = np.zeros((N,d)) # Particle Position (N-d)
     v = np.zeros((N,d)) # Particle Velcocity (N-d)
 
-    [t_remian, cur_remain] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
+    [t_pv, cur_pv] = clac_pv_current(date, latitude, vol_bat) # caclulate the remain current
 
     xlimit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
     xlimit_pulse = np.array([[0],[6.6]])
@@ -147,12 +168,12 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     xm = x # The best known position of particle (N-d)
     ym = np.zeros((1,d)) # The best known position of entire swarm (1-d)
     SoH = np.zeros((ger,N)) # SoH of each iteration of each particle (ger-N)
-    t = np.zeros((ger,N)) # Charging time of each iteration of each particle (ger-N)
+    t = np.zeros((ger,N)) # Charging time of each iteration of each partiacle (ger-N)
     fx = np.zeros((ger,N)) # Objective function value of each iteration of each particle (ger-N)
-    fxm = np.zeros((N,1)) # Optimal objective function value of particle (N-1)
-    fym = float("-inf") # Global optimal objective function value
+    fxm = np.inf * np.ones((N,1)) # Optimal objective function value of particle (N-1)
+    fym = 1 # Global optimal objective function value
 
-    while iter <= ger:
+    while iter <= ger - 1:
 
         pool = mp.Pool() # create a multiprocessing pool
         processes = [] # create a list of processes
@@ -169,9 +190,9 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         for j in range(N): 
             [t[iter,j], _, SoH[iter,j], _, flag] = results[j]
+            [t_remian, cur_remain] = clac_remain_current(x[j], t_pv, cur_pv)
             fx[iter,j] = obj_func(SoH[iter,j], t[iter,j], flag, x[j], 0.5, t_remian, cur_remain) # Optimal function value
-            # print(fx[iter,j])
-            
+
             if fxm[j] > fx[iter,j]:
                 fxm[j] = fx[iter,j]
                 xm[j] = x[j]
@@ -179,7 +200,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         if fym > np.amin(fxm):
             fym = np.amin(fxm)
             nmin = np.argmin(fxm)
-            ym = xm(nmin)
+            ym = xm[nmin]
 
         v = v * w + c1 * np.random.rand() * (xm - x) + c2 * np.random.rand() * (np.matlib.repmat(ym,N,1) - x)
 
@@ -213,7 +234,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     return [SoH, t, ym, fym, fx, fxm]
 
 if __name__ == '__main__':
-    [SoH, t, ym, fym, fx, fxm] = particle_swarm_optimization(20, 4, 50)
+    [SoH, t, ym, fym, fx, fxm] = particle_swarm_optimization(2, 4, 2)
     print(SoH, t, ym, fym, fx, fxm)
 
     # [t, cur_remain] = clac_remain_current(180, 30, 3.6)
