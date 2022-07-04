@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-29 12:06:24
+LastEditTime: 2022-07-04 14:57:13
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -19,7 +19,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 
-def object_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_list:list, remain_cur_list:list):
+def obj_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_list:list, remain_cur_list:list):
     '''Object Function Calculate
     Args: 
         SoH: State of Health
@@ -39,16 +39,15 @@ def object_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_list:li
     Qe = 3.3 # Battery Capacity (Ah)
     ratio_pulse = 0.2 # Duty ratio of pulse charging
 
-    J = beta * t / t_m + (1 - beta) * SoH 
-
-    if flag == 1: return np.inf
-    if t < 2 * 3600 or t > 10 * 3600: return np.inf
-    if SoH < 0: return np.inf
+    J = beta * t / t_m + (1 - beta) * SoH
+    if flag == 1: J = np.inf
+    if t < 2 * 3600 or t > 10 * 3600: J = np.inf
+    if SoH < 0: J = np.inf
 
     try:
         t1 = np.interp(policy[0], remain_cur_list, t_list)
     except:
-        return np.inf
+        J = np.inf
         
     t2 = t1 + 0.2 * Qe / policy[0]
     t3 = t2 + 0.2 * Qe / policy[1]
@@ -62,7 +61,7 @@ def object_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_list:li
 
     if cur_remain_2 < policy[0] or cur_remain_3 < policy[1] or \
         cur_remain_4 < policy[2] or cur_remain_5 < policy[3] * ratio_pulse:
-        return np.inf
+        J = np.inf
 
     return J
 
@@ -127,7 +126,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     x = np.zeros((N,d)) # Particle Position (N-d)
     v = np.zeros((N,d)) # Particle Velcocity (N-d)
 
-    [t, cur_remain] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
+    [t_remian, cur_remain] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
 
     xlimit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
     xlimit_pulse = np.array([[0],[6.6]])
@@ -170,7 +169,8 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         for j in range(N): 
             [t[iter,j], _, SoH[iter,j], _, flag] = results[j]
-            fx[iter,j] = object_func(SoH[iter,j], t[iter,j], flag, x[j], 0.5, t, cur_remain) # Optimal function value
+            fx[iter,j] = obj_func(SoH[iter,j], t[iter,j], flag, x[j], 0.5, t_remian, cur_remain) # Optimal function value
+            # print(fx[iter,j])
             
             if fxm[j] > fx[iter,j]:
                 fxm[j] = fx[iter,j]
