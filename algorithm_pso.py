@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-04 22:18:57
+LastEditTime: 2022-07-05 16:52:17
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -28,6 +28,7 @@ def clac_pv_current(date:int, latitude:float, vol_bat:float):
         latitude: (°)
         vol_bat: Battery voltage (V)
     Returns:
+        t_pv_list: Time list (h)
         cur_remain_list: Remain current list (A)
     '''
 
@@ -85,15 +86,15 @@ def clac_remain_current(policy:list, t_pv_list:list, cur_pv_list:list):
 
     return [t_remain_list, cur_remain_list]
 
-def obj_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_remain_list:list, cur_remain_list:list):
+def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain_list:list, cur_remain_list:list):
     '''Object Function Calculate
     Args: 
         SoH: State of Health
-        t: Total charging time (s)
+        t: Total charging time list (s)
         flag: Timeout
         policy: Charging policy (list)
-        beta: Weight coeffeicent 
-        cur_remain_list: Remain current list (list)
+        beta: Weight coeffeicent 0-1
+        cur_remain_list: Remain current list (A)
     Returns:
         J: Cost
     Description:
@@ -103,17 +104,20 @@ def obj_func(SoH:float, t:float, flag:int, policy:list, beta:float, t_remain_lis
         exceeds the limit, it will become infinite
     '''
     t_m = 6*3600 # Empirical charging time
+    t_total = t_cost[0]
 
-    J = beta * t / t_m + (1 - beta) * SoH
+    J_anxiety = 0.4 * np.exp(t_cost[1]/t_total) + 0.3 * np.exp(t_cost[2]/t_total)+ 0.2 * np.exp(t_cost[3]/t_total)+ 0.05 * np.exp(t_cost[4]/t_total)
+
+    J = beta * J_anxiety + (1 - beta) * SoH
 
     if flag == 1: J = np.inf
-    if t < 2 * 3600 or t > 10 * 3600: J = np.inf
+    if t_total < 1 * 3600 or t_total > 10 * 3600: J = np.inf
     if SoH < 0: J = np.inf
 
     if t_remain_list[0] == np.inf: J = np.inf
  
     for i in range(len(cur_remain_list)):
-        if t_remain_list[i] < policy[i]:
+        if t_remain_list[i] < policy[i]:    
             J = np.inf
             break
 
@@ -139,7 +143,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     w = 0.729 # Inertial weight
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
-    beta = 1 # Weight coefficient 1: fastest; 0: healthiest
+    beta = 0.5 # Weight coefficient 1: fastest; 0: healthiest
     iter = 0  # Initial iteration
     np.random.seed(N * d * ger) # set seed
 
@@ -149,12 +153,12 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     [t_pv, cur_pv] = clac_pv_current(date, latitude, vol_bat) # caclulate the remain current
 
-    xlimit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
+    xlimit_cc = np.matlib.repmat(np.array([[0],[6.6]]),1,d-1) 
     xlimit_pulse = np.array([[0],[6.6]])
     xlimit = np.hstack((xlimit_cc, xlimit_pulse)) # Charging crrent limits (2-d)
 
     vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-1) 
-    vlimit_pulse = np.array([[-1],[1]])
+    vlimit_pulse = np.array([[-0.5],[0.5]])
     vlimit = np.hstack((vlimit_cc, vlimit_pulse)) # Velocity limits (2-d)
 
     # Initialize the particle position
@@ -189,9 +193,10 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         pool.join() # Wait all thread to finish
 
         for j in range(N): 
-            [t[iter,j], _, SoH[iter,j], _, flag] = results[j]
+            [t_cost, _, SoH[iter,j], _, flag] = results[j]
+            t[iter,j] = t_cost[0]
             [t_remian, cur_remain] = clac_remain_current(x[j], t_pv, cur_pv)
-            fx[iter,j] = obj_func(SoH[iter,j], t[iter,j], flag, x[j], 0.5, t_remian, cur_remain) # Optimal function value
+            fx[iter,j] = obj_func(SoH[iter,j], t_cost, flag, x[j], beta, t_remian, cur_remain) # Optimal function value
 
             if fxm[j] > fx[iter,j]:
                 fxm[j] = fx[iter,j]
@@ -234,7 +239,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     return [SoH, t, ym, fym, fx, fxm]
 
 if __name__ == '__main__':
-    [SoH, t, ym, fym, fx, fxm] = particle_swarm_optimization(2, 4, 2)
-    print(SoH, t, ym, fym, fx, fxm)
+    [SoH, t, ym, fym, fx, fxm] = particle_swarm_optimization(20, 4, 50)
+    # print(SoH, t, ym, fym, fx, fxm)
 
     # [t, cur_remain] = clac_remain_current(180, 30, 3.6)

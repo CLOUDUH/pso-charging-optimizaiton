@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-04 14:47:09
+LastEditTime: 2022-07-05 16:49:13
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -96,7 +96,7 @@ def aging_model(t_p:float, I:float, Temp:float, Qloss:float): #
         b = (Qloss / (B * np.exp((-E_a + alpha * abs(I)) / (R * Temp)))) ** (1 - (1 / z))
     except:
         b = 0
-
+    
     dQloss = (abs(I) / 3600) * z * B * np.exp((-E_a + alpha * abs(I)) / (R * Temp)) * b
     Qloss = Qloss + dQloss * t_p
     SoH = 1 - ((Qloss / Qe) / 0.2)
@@ -202,13 +202,14 @@ def battery_pulse_charged(policy:list):
     '''
 
     t_p = 1
-    Temp = 298.15
+    Temp = -10 + 273.15
     Q_loss = 0.001
     SoC = 0.01
     t = 0
     ratio_pulse = 0.2 # Duty ratio of pulse charging
     cycle_pulse = 10 # Cycle of the pulse charging
     flag = 0
+    
 
     cur_cc1 = policy[0]
     cur_cc2 = policy[1]
@@ -254,14 +255,22 @@ def battery_pulse_charged(policy:list):
             break
     time_pulse = t - time_cc3
 
-    print(iter, thread, "\tPolicy:", policy[:4],"\tSoH(%):", round(SoH, 3), "\tt(h):", round(t/3600,3), "\tTemp(K)", round(Temp, 3))
-    return [t, Q_loss, SoH, Temp, flag]
+    t_cost = [t, time_cc1, time_cc2, time_cc3, time_pulse]
+
+    policy_display =[round(policy[0],3), round(policy[1],3), round(policy[2],3), round(policy[3],3)]
+    t_cost_display = [round(t_cost[0]/3600 ,2), round(t_cost[1]/3600,2), round(t_cost[2]/3600,2), round(t_cost[3]/3600,2), round(t_cost[4]/3600,2)]
+    # print("Thread:", thread, "Policy:", policy_display, "Time Cost:", t_cost_display)
+
+    print("Iter-Num:", iter, "-", thread, "\tSoH:",  round(100 * SoH, 3), "\tTemp:", 
+        round(Temp, 3), "\tPly:", policy_display,"\tTime:", t_cost_display)
+
+    return [t_cost, Q_loss, SoH, Temp, flag]
 
 if __name__ == '__main__':
     
     # nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
     # battery_charged(1, nCC)
-    policy = [1.0, 0.8, 0.6, 2.0, 1, 16]
-    policy = [0.1, 0.1, 0.1, 0.1, 1, 16]
-    battery_pulse_charged(policy)
+    policy = [3.3, 3.3, 3.3, 10, 1, 1]
+    # policy = [0.1, 0.1, 0.1, 0.1, 1, 16]
+    print(battery_pulse_charged(policy))
  
