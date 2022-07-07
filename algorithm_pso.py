@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-05 16:52:17
+LastEditTime: 2022-07-06 19:11:29
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -51,6 +51,9 @@ def clac_pv_current(date:int, latitude:float, vol_bat:float):
         
         cur_remain_list.append(cur_remain)
         t_list.append(t)
+
+    plt.plot(t_list, cur_remain_list)
+    plt.show()
 
     return [t_list, cur_remain_list]
 
@@ -106,15 +109,17 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
     t_m = 6*3600 # Empirical charging time
     t_total = t_cost[0]
 
-    J_anxiety = 0.4 * np.exp(t_cost[1]/t_total) + 0.3 * np.exp(t_cost[2]/t_total)+ 0.2 * np.exp(t_cost[3]/t_total)+ 0.05 * np.exp(t_cost[4]/t_total)
+    J_anxiety = 0.4 * np.exp(- t_cost[1]/t_total) + 0.3 * np.exp(- t_cost[2]/t_total)+ 0.2 * np.exp(- t_cost[3]/t_total)+ 0.05 * - np.exp(- t_cost[4]/t_total)
 
-    J = beta * J_anxiety + (1 - beta) * SoH
+    J = beta * J_anxiety + (1 - beta) * (1 - SoH)
 
     if flag == 1: J = np.inf
     if t_total < 1 * 3600 or t_total > 10 * 3600: J = np.inf
     if SoH < 0: J = np.inf
-
     if t_remain_list[0] == np.inf: J = np.inf
+    
+    for i in policy:
+        if i == 0: J = np.inf
  
     for i in range(len(cur_remain_list)):
         if t_remain_list[i] < policy[i]:    
@@ -153,7 +158,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     [t_pv, cur_pv] = clac_pv_current(date, latitude, vol_bat) # caclulate the remain current
 
-    xlimit_cc = np.matlib.repmat(np.array([[0],[6.6]]),1,d-1) 
+    xlimit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
     xlimit_pulse = np.array([[0],[6.6]])
     xlimit = np.hstack((xlimit_cc, xlimit_pulse)) # Charging crrent limits (2-d)
 

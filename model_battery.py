@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-05 16:49:13
+LastEditTime: 2022-07-06 19:15:04
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -272,5 +272,6 @@ if __name__ == '__main__':
     # battery_charged(1, nCC)
     policy = [3.3, 3.3, 3.3, 10, 1, 1]
     # policy = [0.1, 0.1, 0.1, 0.1, 1, 16]
+    policy = [0.11291029,2.21811998,1.87677144,5.13418808,1,1]
     print(battery_pulse_charged(policy))
  
