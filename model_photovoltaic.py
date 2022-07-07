@@ -14,7 +14,7 @@ import sys
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from utils.sat import sat
+from func.sat import sat
 
 def irradiation_cal(t:float, date:float, latitude:float):
     '''Solar irradiation calculate

@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-06 19:15:04
+LastEditTime: 2022-07-07 22:24:09
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -14,6 +14,9 @@ import numpy as np
 from scipy.interpolate import griddata
 import pandas as pd
 import numpy.matlib
+import matplotlib.pyplot as plt
+
+from func.sciplt import sciplt_battery
 
 VO_Tab = pd.read_csv("utils/VO.csv",header=None) # O not 0!!!
 R0_Tab = pd.read_csv("utils/R0.csv",header=None)
@@ -131,64 +134,6 @@ def battery_model(t_p:float, I:float, SoC:float, Temp:float, Qloss:float):
 
     return [V_t, SoC, Temp, Qloss, SoH]
 
-def battery_charged(nCC:list): 
-    '''Battery Charging Whole Process
-    Args:
-        t_p: Step (s)
-        CC: Battery charging constant current (d-1 list) 
-    Returns:
-        SoH: Whole charging process SoH
-        t: Charging time cost
-        E_ch: Total battery charge energy
-    Detail:
-        Do not need while loop
-    '''
-    t_p = 1
-    SoC = 0.1
-    Qloss = 0.001
-    SoH = 1 - ((Qloss / Qe) / 0.2)
-    Temp = 298.15
-    i = 1
-    E_ch = 0
-
-    n = len(nCC)
-    if n == 5:
-        SoC_range = [0.2,0.4,0.6,0.8,0.999]
-    elif n == 4:
-        SoC_range = [0.25,0.5,0.75,0.999]
-    elif n == 3:
-        SoC_range = [0.4,0.8,0.999]
-    elif n == 2:
-        SoC_range = [0.7,0.999]
-    elif n == 1:
-        SoC_range = [0.999]
-    else:
-        raise ValueError("nCC list error")
-
-    for j in range(n):
-
-        while SoC < SoC_range[j]:
-
-            if nCC[j] <= 0.01:
-                break # Stop nonsence
-
-            if (i-1) * t_p >= 4 * 3600:
-                break # Stop falling
-
-            [V_t, SoC] = equivalent_circuit_model(t_p, nCC[j], Temp, SoC) 
-            Temp = thermal_model(t_p, nCC[j], Temp, SoC)
-            [Qloss, SoH] = aging_model(t_p, nCC[j], Temp, Qloss)
-
-            E_ch = E_ch + V_t * nCC[j] * t_p
-
-            print(i, round(nCC[j],2), round(SoC, 2), round(Temp,2), round(Qloss,2), round(SoH,2))
-
-            i = i + 1
-
-    t = (i - 1) * 0.05
-
-    return [SoH,t,E_ch]
-
 def battery_pulse_charged(policy:list):
     '''
     Args: 
@@ -210,7 +155,6 @@ def battery_pulse_charged(policy:list):
     cycle_pulse = 10 # Cycle of the pulse charging
     flag = 0
     
-
     cur_cc1 = policy[0]
     cur_cc2 = policy[1]
     cur_cc3 = policy[2]
@@ -240,7 +184,7 @@ def battery_pulse_charged(policy:list):
         if t >= 12 * 3600: # Timeout
             flag = 1 
             break
-    time_cc3 = t - time_cc2
+    time_cc3 = t - time_cc2 - time_cc1
     
     while flag ==0 and SoC <= 0.999: # pulse charging
         t_start = t
@@ -253,7 +197,7 @@ def battery_pulse_charged(policy:list):
         if t >= 12 * 3600: # Timeout
             flag = 1 
             break
-    time_pulse = t - time_cc3
+    time_pulse = t - time_cc3 - time_cc2 - time_cc1
 
     t_cost = [t, time_cc1, time_cc2, time_cc3, time_pulse]
 
@@ -266,12 +210,125 @@ def battery_pulse_charged(policy:list):
 
     return [t_cost, Q_loss, SoH, Temp, flag]
 
-if __name__ == '__main__':
+def pulse_charged_plot(policy:list):
+
+    t_p = 1
+    Temp = 25 + 273.15
+    Q_loss = 0.001
+    SoC = 0.01
+    t = 0
+    ratio_pulse = 0.2 # Duty ratio of pulse charging
+    cycle_pulse = 10 # Cycle of the pulse charging
+
+    cur_cc1 = policy[0]
+    cur_cc2 = policy[1]
+    cur_cc3 = policy[2]
+    cur_pulse = policy[3]
+
+    t_list = []
+    SoH_list = []
+    Temp_list = []
+    Q_loss_list = []
+    V_t_list = []
+
+    while SoC <= 0.3:
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc1, SoC, Temp, Q_loss)
+        t_list.append(t)
+        SoH_list.append(SoH)
+        Temp_list.append(Temp)
+        Q_loss_list.append(Q_loss)
+        V_t_list.append(V_t)
+        t = t + 1
     
-    # nCC = [2.0, 1.6, 1.2, 1.0, 0.8]
-    # battery_charged(1, nCC)
-    policy = [3.3, 3.3, 3.3, 10, 1, 1]
-    # policy = [0.1, 0.1, 0.1, 0.1, 1, 16]
-    policy = [0.11291029,2.21811998,1.87677144,5.13418808,1,1]
-    print(battery_pulse_charged(policy))
- 
+    while SoC <= 0.6:
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc2, SoC, Temp, Q_loss)
+        t_list.append(t)
+        SoH_list.append(SoH)
+        Temp_list.append(Temp)
+        Q_loss_list.append(Q_loss)
+        V_t_list.append(V_t)
+        t = t + 1
+    
+    while SoC <= 0.9:
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_cc3, SoC, Temp, Q_loss)
+        t_list.append(t)
+        SoH_list.append(SoH)
+        Temp_list.append(Temp)
+        Q_loss_list.append(Q_loss)
+        V_t_list.append(V_t)
+        t = t + 1
+    
+    while SoC <= 0.999: # pulse charging
+        t_start = t
+        while t < t_start + cycle_pulse * ratio_pulse:
+            [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cur_pulse, SoC, Temp, Q_loss)
+            t_list.append(t)
+            SoH_list.append(SoH)
+            Temp_list.append(Temp)
+            Q_loss_list.append(Q_loss)
+            V_t_list.append(V_t)
+            t = t + 1
+
+        while t < t_start + cycle_pulse * (1 - ratio_pulse):
+            [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, 0, SoC, Temp, Q_loss)
+            t_list.append(t)
+            SoH_list.append(SoH)
+            Temp_list.append(Temp)
+            Q_loss_list.append(Q_loss)
+            V_t_list.append(V_t)
+            t = t + 1
+
+    return [t_list, SoH_list, Temp_list, Q_loss_list, V_t_list]
+
+def battery_cccv_charged(): 
+
+    t_p = 1
+    SoC = 0.1
+    Q_loss = 0.001
+    Temp = 298.15
+    t = 0
+
+    cc = 0.5 * 3.3
+    cv = 4.2
+
+    t_list = []
+    SoH_list = []
+    Temp_list = []
+    Q_loss_list = []
+    V_t_list = []
+
+    while SoC <= 1.0:
+
+        [V_t, SoC, Temp, Q_loss, SoH] = battery_model(t_p, cc, SoC, Temp, Q_loss)
+        t_list.append(t)
+        SoH_list.append(SoH)
+        Temp_list.append(Temp)
+        Q_loss_list.append(Q_loss)
+        V_t_list.append(V_t)
+        t = t + 1
+
+    return [t_list, SoH_list, Temp_list, Q_loss_list, V_t_list]
+
+if __name__ == '__main__':
+
+    policy = [0.98703503, 1.70897805, 2.49398114, 6.6]
+
+    [t1_list, SoH1_list, Temp1_list, Q_loss1_list, V_t1_list] = pulse_charged_plot(policy)
+
+    [t2_list, SoH2_list, Temp2_list, Q_loss2_list, V_t2_list] = battery_cccv_charged()
+
+    y1 = {'SoH': SoH1_list, 'Temp': Temp1_list, 'Q_loss': Q_loss1_list, 'V_t': V_t1_list}
+
+    y2 = {'SoH': SoH2_list, 'Temp': Temp2_list, 'Q_loss': Q_loss2_list, 'V_t': V_t2_list}
+
+    plt.subplot(221)
+    sciplt_battery([t1_list,t2_list], [V_t1_list, V_t2_list], "Time(s)","Voltage(V)","Terminal Voltage",["PSO","CCCV"])
+    plt.subplot(222)
+    sciplt_battery([t1_list,t2_list], [SoH1_list, SoH2_list], "Time(s)","SoH(%)","SoH",["PSO","CCCV"])
+    plt.subplot(223)
+    sciplt_battery([t1_list,t2_list], [Temp1_list, Temp2_list], "Time(s)","Temperature(K)","Temperature",["PSO","CCCV"])
+    plt.subplot(224)
+    sciplt_battery([t1_list,t2_list], [Q_loss1_list, Q_loss2_list], "Time(s)","Q loss(Ah)","Capacity Loss",["PSO","CCCV"])
+    plt.show()
+
+    

@@ -2,13 +2,13 @@
 Author: CLOUDUH
 Date: 2022-06-06 11:17:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-06-06 11:30:56
+LastEditTime: 2022-07-07 21:21:33
 Description: 
 '''
 
 import math
 import matplotlib.pyplot as plt
-from utils.sat import sat
+from func.sat import sat
 
 from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
