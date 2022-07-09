@@ -255,7 +255,6 @@ def battery_opt_charged(args:list):
     cur_cc2 = args[0][1]
     cur_cc3 = args[0][2]
     cur_pulse = args[0][3]
-    range_pulse = args[0][4]
 
     iter = int(args[1][0])
     thread = int(args[1][1])
