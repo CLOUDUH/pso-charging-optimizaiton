@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-09 23:47:34
+LastEditTime: 2022-07-10 00:17:30
 Description: 
 '''
 
@@ -76,9 +76,9 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int,
         soh_log: Battery State of Health list
         temp_log: Battery temperature (K) list
     Return:
+        t_log: Charging time cost (s) list
         volt_log: Battery terminal voltage (V) list
         soc_log: Battery state of charge list
-        t_loss_log: Charging time cost (s) list
         cap_log: Battery capacity (Ah) list
         soh_log: Battery State of Health list
         temp_log: Battery temperature (K) list
@@ -138,9 +138,9 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
         soh_log: Battery State of Health list
         temp_log: Battery temperature (K) list
     Return:
+        t_log: Charging time cost (s) list
         volt_log: Battery terminal voltage (V) list
         soc_log: Battery state of charge list
-        t_loss_log: Charging time cost (s) list
         cap_log: Battery capacity (Ah) list
         soh_log: Battery State of Health list
         temp_log: Battery temperature (K) list
@@ -154,10 +154,9 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
     t_start = t_log[-1]
         
     t = t_start
+
     while soc >= bdy[0] and soc <=bdy[1]:
         t_cycle = t
-        print(t, t_cycle + cycle * ratio)
-
         while t < t_cycle + cycle * ratio:
             [volt, soc, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, temp, cap)
             t_log.append(t)
@@ -169,9 +168,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             soh_log.append(soh)
             t = t + 1
 
-
-        while t < t_cycle + cycle * ratio * (1 - ratio):
-            print("!!!!")
+        while t < t_cycle + cycle:
             [volt, soc, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, temp, cap)
             t_log.append(t)
             volt_log.append(volt)
@@ -186,7 +183,6 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             flag_timeout = 1 
             break
     
-    print(t)
     
     t_charge = t_log[-1] - t_start
 
@@ -227,6 +223,22 @@ def battery_cccv_charged(cc:float, cv:float, bdy:list):
     return [t_log, volt_log, cur_log, soc_log, temp_log, cap_log, soh_log]
 
 def battery_opt_charged(args:list):
+    '''Battery Optimized Charge Process
+    Args:
+        args: Optimized charge arguments list
+            [[CC1,CC2,CC3,CC4], [iter, thread], [0,0.3,0.6,0.9,0.99]]
+    Returns:
+        t_log: Charging time cost (s) list
+        volt_log: Battery terminal voltage (V) list
+        soc_log: Battery state of charge list
+        cap_log: Battery capacity (Ah) list
+        soh_log: Battery State of Health list
+        temp_log: Battery temperature (K) list
+        t_pulse: Charging time (s)
+        flag_timeout: Timeout flag (0: no timeout, 1: timeout)
+    Description:
+        Optimized charge process
+    '''
 
     t_p = 1
     volt_log = [3.6]
@@ -243,6 +255,8 @@ def battery_opt_charged(args:list):
     cur_cc2 = args[0][1]
     cur_cc3 = args[0][2]
     cur_pulse = args[0][3]
+    range_pulse = args[0][4]
+
     iter = int(args[1][0])
     thread = int(args[1][1])
 
@@ -278,7 +292,7 @@ def battery_opt_charged(args:list):
 
 if __name__ == '__main__':
     
-    args1 = [[0.98703503, 1.70897805, 2.49398114, 6.6], [2,2], [0,0.3,0.6,0.9,0.99]]
+    args1 = [[0.98703503, 1.70897805, 2.49398114, 5], [2,2], [0,0.3,0.6,0.9,0.99]]
     args2 = [[0.90453935, 1.68994086, 2.53827688, 4.13408792], [1,1], [0,0.3,0.6,0.9,0.99]]
     [t1_log, t2_cost, volt1_log, cur1_log, soc1_log, temp1_log, cap1_log, soh1_log, _] = battery_opt_charged(args1)
     [t2_log, t2_cost, volt2_log, cur2_log, soc2_log, temp2_log, cap2_log, soh2_log, _] = battery_opt_charged(args2)
@@ -286,89 +300,27 @@ if __name__ == '__main__':
     x_limit = [0, max(t1_log[-1], t2_log[-1])+200]
 
     plt.subplot(231)
-    volt_plot = [[t1_log,volt1_log,'PSO','o','r',500], [t2_log,volt2_log,'CCCV','v','g',500]]
-    sciplt(volt_plot, "Time(s)", "Voltage(V)", "Terminal Voltage", "lower right", x_limit, [0,5])
+    volt_plot = [[t1_log,volt1_log,'PSO','o','r',500,0.01], [t2_log,volt2_log,'CCCV','v','g',500,0.01]]
+    sciplt(volt_plot, "Time(s)", "Voltage(V)", "Terminal Voltage", "lower right", x_limit, [2.8,4.3])
 
     plt.subplot(232)
-    cur_plot = [[t1_log,cur1_log,'PSO','o','r',500], [t2_log,cur2_log,'CCCV','v','g',500]]
-    sciplt(cur_plot, "Time(s)", "Current(A)", "Terminal Current", "lower right", x_limit, [0,5])
+    cur_plot = [[t1_log,cur1_log,'PSO','o','r',500,0.01], [t2_log,cur2_log,'CCCV','v','g',500,0.01]]
+    sciplt(cur_plot, "Time(s)", "Current(A)", "Current", "upper left", x_limit, [0,6])
 
     plt.subplot(233)
-    soc_plot = [[t1_log,soc1_log,'PSO','o','r',500], [t2_log,soc2_log,'CCCV','v','g',500]]
-    sciplt(soc_plot, "Time(s)", "SOC(%)", "Terminal SOC", "lower right", x_limit, [0,1])
+    soc_plot = [[t1_log,soc1_log,'PSO','o','r',500,0.01], [t2_log,soc2_log,'CCCV','v','g',500,0.01]]
+    sciplt(soc_plot, "Time(s)", "SOC(%)", "State of Charge", "lower right", x_limit, [0,1])
 
     plt.subplot(234)
-    temp_plot = [[t1_log,temp1_log,'PSO','o','r',500], [t2_log,temp2_log,'CCCV','v','g',500]]
-    sciplt(temp_plot, "Time(s)", "Temperature(K)", "Terminal Temperature", "lower right", x_limit, [250,350])
+    temp_plot = [[t1_log,temp1_log,'PSO','o','r',500,0.01], [t2_log,temp2_log,'CCCV','v','g',500,0.01]]
+    sciplt(temp_plot, "Time(s)", "Temperature(K)", "Temperature", "lower right", x_limit, [280,320])
 
     plt.subplot(235)
-    cap_plot = [[t1_log,cap1_log,'PSO','o','r',500], [t2_log,cap2_log,'CCCV','v','g',500]]
-    sciplt(cap_plot, "Time(s)", "Capacity(Ah)", "Terminal Capacity", "lower right", x_limit, [0,4])
+    cap_plot = [[t1_log,cap1_log,'PSO','o','r',500,0.01], [t2_log,cap2_log,'CCCV','v','g',500,0.01]]
+    sciplt(cap_plot, "Time(s)", "Capacity(Ah)", "Capacity", "upper right", x_limit, [3.0,3.4])
 
     plt.subplot(236)
-    soh_plot = [[t1_log,soh1_log,'PSO','o','r',500], [t2_log,soh2_log,'CCCV','v','g',500]]
-    sciplt(soh_plot, "Time(s)", "SOH(%)", "Terminal SOH", "lower right", x_limit, [0,1])
-
+    soh_plot = [[t1_log,soh1_log,'PSO','o','r',500,0.01], [t2_log,soh2_log,'CCCV','v','g',500,0.01]]
+    sciplt(soh_plot, "Time(s)", "SOH(%)", "State of Health", "upper right", x_limit, [0.6,1])
     plt.show()
-
-    # plt.subplot(231)
-    # plt.grid() 
-    # label = ["Time(s)","Voltage(V)","Terminal Voltage"] 
-    # plt.plot(t1_log, volt1_log, marker='o', color='r', markevery=1000, label='CCCV')
-    # plt.plot(t2_log, volt2_log, marker='o', color='g', markevery=1000, label='PSO')
-    # plt.legend(loc="lower left")
-    # plt.xlabel(label[0])
-    # plt.ylabel(label[1])
-    # plt.title(label[2])
-
-    # plt.subplot(232)
-    # plt.grid() 
-    # label = ["Time(s)","Current(A)","Charging Current"]
-    # plt.plot(t1_log, cur1_log, marker='o', color='r', markevery=1000, label='CCCV')
-    # plt.plot(t2_log, cur2_log, marker='o', color='g', markevery=1000, label='PSO')
-    # plt.legend(loc="lower left")
-    # plt.xlabel(label[0])
-    # plt.ylabel(label[1])
-    # plt.title(label[2])
-
-    # plt.subplot(233)
-    # plt.grid() 
-    # label = ["Time(s)","SoC(%)","State of Charge"]
-    # plt.plot(t1_log, soc1_log, marker='o', color='r', markevery=1000, label='CCCV')
-    # plt.plot(t2_log, soc2_log, marker='o', color='g', markevery=1000, label='PSO')
-    # plt.legend(loc="lower left")
-    # plt.xlabel(label[0])
-    # plt.ylabel(label[1])
-    # plt.title(label[2])
-
-    # plt.subplot(234)
-    # label = ["Time(s)","Temperature(K)","Temperature"]
-    # plt.plot(t1_log, temp1_log, marker='o', color='r', markevery=1000, label='CCCV')
-    # plt.plot(t2_log, temp2_log, marker='o', color='g', markevery=1000, label='PSO')
-    # plt.legend(loc="lower left")
-    # plt.xlabel(label[0])
-    # plt.ylabel(label[1])
-    # plt.title(label[2])
-
-    # plt.subplot(235)
-    # plt.grid() 
-    # label = ["Time(s)","Capacity(Ah)","Capacity"]
-    # plt.plot(t1_log, cap1_log, marker='o', color='r', markevery=1000, label='CCCV')
-    # plt.plot(t2_log, cap2_log, marker='o', color='g', markevery=1000, label='PSO')
-    # plt.legend(loc="lower left")
-    # plt.xlabel(label[0])
-    # plt.ylabel(label[1])
-    # plt.title(label[2])
-
-    # plt.subplot(236)
-    # plt.grid() 
-    # label = ["Time(s)","SoH(%)","SoH"]
-    # plt.plot(t1_log, soh1_log, marker='o', color='r', markevery=1000, label='CCCV')
-    # plt.plot(t2_log, soh2_log, marker='o', color='g', markevery=1000, label='PSO')
-    # plt.legend(loc="lower left")
-    # plt.xlabel(label[0])
-    # plt.ylabel(label[1])
-    # plt.title(label[2])
-
-    # plt.show()
 

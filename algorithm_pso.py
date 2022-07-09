@@ -2,18 +2,17 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-09 22:41:33
+LastEditTime: 2022-07-10 00:31:50
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
 '''
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import multiprocessing as mp
-from func.sciplt import sciplt_pso
-import matplotlib.gridspec as gridspec
 
-from model_battery import battery_pulse_charged
+from func.sciplt import sciplt
 from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
 from model_mppt import mppt_cal
@@ -299,16 +298,30 @@ if __name__ == '__main__':
         particle_swarm_optimization(N, d, ger)
 
     iter = np.arange(0,ger)
-    policy_dict = {"CC1" : policy_seek[:,0], "CC2": policy_seek[:,1], "CC3": policy_seek[:,2], "CC4": policy_seek[:,3]}
-    t_dict = {"Total" : t_seek[:,0], "CC1": t_seek[:,1], "CC2": t_seek[:,2], "CC3": t_seek[:,3], "Pulse": t_seek[:,4]}
-    J_dict = {"J Total" : J_seek[:,0], "Time": J_seek[:,1], "CCJ SoH2": J_seek[:,2]}
 
     G = gridspec.GridSpec(2, 2)
     plt.subplot(G[0,:])
-    sciplt_pso(iter, policy_dict,"Iteration","Policy(A)","Policy of Particle")
+    iter_plot =[
+        [iter, J_seek[:,0],'J Total','v','r',1,0.01],
+        [iter, J_seek[:,1],'J Time','v','g',1,0.01],
+        [iter, J_seek[:,2],'J SoH2','v','b',1,0.01]]
+    sciplt(iter_plot, "Iteration", "J", "Objective Function Value of Particle", "lower right", [0,30], [0,1])
+
     plt.subplot(G[1,0])
-    sciplt_pso(iter, t_dict,"Iteration","Time(A)","Charging Time of Particle")
+    policy_plot = [
+        [iter, policy_seek[:,0],'CC1','v','r',1,0.01], 
+        [iter, policy_seek[:,1],'CC2','v','g',1,0.01],
+        [iter, policy_seek[:,2],'CC3','v','b',1,0.01],
+        [iter, policy_seek[:,3],'Pulse','v','y',1,0.01]]
+    sciplt(policy_plot, "Iteration", "Policy(A)", "Policy of Particle", "lower right", [0,30], [0,6])
+
     plt.subplot(G[1,1])
-    sciplt_pso(iter, J_dict,"Iteration","J(A)","Objective Function Value of Particle")
+    t_plot = [
+        [iter, t_seek[:,0],'Total','v','w',1,0.01],
+        [iter, t_seek[:,1],'CC1','v','r',1,0.01],
+        [iter, t_seek[:,2],'CC2','v','g',1,0.01],
+        [iter, t_seek[:,3],'CC3','v','b',1,0.01],
+        [iter, t_seek[:,4],'Pulse','v','y',1,0.01]]
+    sciplt(t_plot, "Iteration", "Time(t)", "Charging Time of Particle", "lower right", [0,30], [0,5000])
 
     plt.show()

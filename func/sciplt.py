@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-07 20:09:20
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-09 23:36:43
+LastEditTime: 2022-07-10 00:16:23
 Description: 
 '''
 from multiprocessing.connection import wait
@@ -13,20 +13,21 @@ from pylab import mpl
 import numpy as np
 
 def sciplt(data:list, xlabel:str, ylabel:str, title:str, legend:str, xlim:list, ylim:list):
-    '''plot
+    '''Science style plot function \\
     Args:
-        x: x-axis
-        y: y-axis
-        xlabel: x-axis labe
-        ylabel: y-axis label
-        title: title of plot
-        style: style of plot (0-15)
+        data: list of data
+            [xdata:list, ydata:list, label:str, marker:str, color:str, markevery:float, mex:float]\\
+            marker_preset = ["o","v","^","<",">","s","p","*"]\\
+            color_preset = ["r","g","b","c","m","y","k","w"]
+        xlabel: xlabel
+        ylabel: ylabel
+        title: title 
+        legend: legend "upper/lower right/left"
+        xlim: xlim [xmin, xmax]
+        ylim: ylim [ymin, ymax]
     Returns:
         None
     '''
-
-    marker_preset = ["o","v","^","<",">","s","p","*"]
-    color_preset = ["r","g","b","c","m","y","k","w"]
 
     mpl.rcParams['font.sans-serif'] = ['Times New Roman'] # 指定默认字体
     mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
@@ -34,13 +35,13 @@ def sciplt(data:list, xlabel:str, ylabel:str, title:str, legend:str, xlim:list, 
     plt.rcParams['figure.figsize'] = (6.0, 4.0) # 设置 figure_size
     plt.rcParams['image.interpolation'] = 'nearest' # 设置 interpolation style
     plt.rcParams['image.cmap'] = 'gray' # 设置 颜色 style
-    plt.rcParams['savefig.dpi'] = 300 #图片像素
+    plt.rcParams['savefig.dpi'] = 3000 #图片像素
     plt.rcParams['figure.dpi'] = 300 #分辨率
     plt.grid()
 
     for i in range(len(data)):
         plt.plot(data[i][0], data[i][1], label=data[i][2], marker=data[i][3], 
-            color=data[i][4], markevery=data[i][5], mew=0.01)
+            color=data[i][4], markevery=data[i][5], mew=data[i][6])
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -50,8 +51,6 @@ def sciplt(data:list, xlabel:str, ylabel:str, title:str, legend:str, xlim:list, 
     plt.ylim(ylim)
 
     return None
-
-
 
 # def sciplt_display(fig, line_args:list, axes_args:list, title:str):
 #     '''display set
@@ -100,13 +99,3 @@ def sciplt(data:list, xlabel:str, ylabel:str, title:str, legend:str, xlim:list, 
 #         i += 1
 
 #     plt.show()
-
-if __name__ == '__main__':
-    a = np.linspace(0,10,100)
-    b = 0.8*a
-    c = 1.2*a
-    u = np.sin(a)
-    v = np.cos(b)
-    w = u+v
-    
-    plt.show()
