@@ -1,6 +1,3 @@
-Battery PSO Charging
-
-Initialization
 clear
 clc
 

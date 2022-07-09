@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-07 22:12:32
+LastEditTime: 2022-07-09 22:41:33
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -18,6 +18,7 @@ from model_photovoltaic import photovoltaic_model
 from model_photovoltaic import irradiation_cal
 from model_mppt import mppt_cal
 from model_load import load_model
+from process_charge import battery_opt_charged
 
 Qe = 3.3 # Battery Capacity (Ah)
 ratio_pulse = 0.2 # Duty ratio of pulse charging
@@ -217,17 +218,21 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         processes = [] # create a list of processes
 
         for j in range(N): 
-            args = x[j]
-            args = np.insert(args,4,[iter,j]) # add iteration and particle number
+            args = [x[j].tolist(), [iter,j], [0,0.3,0.6,0.9,0.99]]
+            # print(args)
+            # args = np.insert(args,4,[iter,j]) # add iteration and particle number
             processes.append(args)
 
-        results = pool.map(battery_pulse_charged, processes) # map the function to the pool !!!
+        results = pool.map(battery_opt_charged, processes) # map the function to the pool !!!
+        # results = pool.map(battery_pulse_charged, processes) # map the function to the pool !!!
 
         pool.close() # Parallel computing
         pool.join() # Wait all thread to finish
 
         for j in range(N): 
-            [t_log[iter,j], _, SoH, _, flag] = results[j] # get the result
+            # [t_log[iter,j], _, SoH, _, flag] = results[j] # get the result
+            [_, t_log[iter,j], _, _, _, _, _, soh_log, flag] = results[j] # get the result
+            SoH = soh_log[-1]
 
             [t_remian, cur_remain] = match_policy(x[j], t_pv, cur_pv) # match the policy
             
@@ -294,7 +299,6 @@ if __name__ == '__main__':
         particle_swarm_optimization(N, d, ger)
 
     iter = np.arange(0,ger)
-
     policy_dict = {"CC1" : policy_seek[:,0], "CC2": policy_seek[:,1], "CC3": policy_seek[:,2], "CC4": policy_seek[:,3]}
     t_dict = {"Total" : t_seek[:,0], "CC1": t_seek[:,1], "CC2": t_seek[:,2], "CC3": t_seek[:,3], "Pulse": t_seek[:,4]}
     J_dict = {"J Total" : J_seek[:,0], "Time": J_seek[:,1], "CCJ SoH2": J_seek[:,2]}
