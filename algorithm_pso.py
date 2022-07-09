@@ -180,11 +180,13 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
     policy_limit_pulse = np.array([[0],[6.6]])
-    policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse)) # Charging crrent limits (2-d)
+    policy_limit_range = np.array([[0],[0.2]])
+    policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse, policy_limit_range)) # Charging crrent limits (2-d)
 
     vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-1) 
     vlimit_pulse = np.array([[-0.5],[0.5]])
-    vlimit = np.hstack((vlimit_cc, vlimit_pulse)) # Velocity limits (2-d)
+    vlimit_range = np.array([[-0.01],[0.01]])
+    vlimit = np.hstack((vlimit_cc, vlimit_pulse, vlimit_range)) # Velocity limits (2-d)
 
     # Initialize the particle position
     for i in range(d):
@@ -291,7 +293,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 if __name__ == '__main__':
 
     N = 20
-    d = 4
+    d = 5
     ger = 30
 
     [policy_log, policy_seek, policy_swarm, J_log, J_seek, J_swarm, t_log, t_seek, t_swarm] = \
