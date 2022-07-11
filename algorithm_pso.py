@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-10 00:31:50
+LastEditTime: 2022-07-10 01:10:22
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -178,12 +178,12 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     [t_pv, cur_pv] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
 
-    policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
+    policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-2) 
     policy_limit_pulse = np.array([[0],[6.6]])
-    policy_limit_range = np.array([[0],[0.2]])
+    policy_limit_range = np.array([[0.05],[0.2]])
     policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse, policy_limit_range)) # Charging crrent limits (2-d)
 
-    vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-1) 
+    vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-2) 
     vlimit_pulse = np.array([[-0.5],[0.5]])
     vlimit_range = np.array([[-0.01],[0.01]])
     vlimit = np.hstack((vlimit_cc, vlimit_pulse, vlimit_range)) # Velocity limits (2-d)
@@ -191,8 +191,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     # Initialize the particle position
     for i in range(d):
         x[:,i] = np.matlib.repmat(policy_limit[0,i],1,N) + \
-                (policy_limit[1,i] - policy_limit[0,i]) * np.random.rand(1,N)
-        
+                (policy_limit[1,i] - policy_limit[0,i]) * np.random.rand(1,N)  
     # Initialize the particle velocity
     for i in range(d):
         v[:,i] = np.matlib.repmat(vlimit[0,i],1,N) + \
@@ -208,10 +207,10 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     J_swarm = [1, 0, 0] # Optimal objective function value of swarm (1)
     J_seek = np.zeros((ger,3)) # save each iteration best objective function value (ger)
 
-    t_log = np.zeros((ger,N,d+1)) # Charging time of each particles-iteration (ger-N-d)
-    t_particle = np.zeros((N,d+1)) # Charging time of particle (N)
-    t_swarm = np.zeros((1,d+1)) # Charging time of swarm (1)
-    t_seek = np.zeros((ger,d+1)) # save each iteration best charging time (ger)
+    t_log = np.zeros((ger,N,d)) # Charging time of each particles-iteration (ger-N-d)
+    t_particle = np.zeros((N,d)) # Charging time of particle (N)
+    t_swarm = np.zeros((1,d)) # Charging time of swarm (1)
+    t_seek = np.zeros((ger,d)) # save each iteration best charging time (ger)
 
     while iter <= ger - 1:
 
@@ -219,7 +218,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         processes = [] # create a list of processes
 
         for j in range(N): 
-            args = [x[j].tolist(), [iter,j], [0,0.3,0.6,0.9,0.99]]
+            args = [x[j].tolist(), [iter,j]]
             # print(args)
             # args = np.insert(args,4,[iter,j]) # add iteration and particle number
             processes.append(args)
