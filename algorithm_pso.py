@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-10 01:10:22
+LastEditTime: 2022-07-11 16:01:27
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -44,10 +44,6 @@ def clac_remain_current(date:int, latitude:float, vol_bat:float):
         rad = irradiation_cal(t, date, latitude)
         [cur_solar, _, pwr_solar] = photovoltaic_model(rad, Temp, vol_bat)
 
-        # pwr_load = load_model(t)
-        # cur_load = pwr_load / vol_bat
-        # cur_remain = cur_solar - cur_load
-
         cur_remain = cur_solar # remove load rencently
         
         if cur_remain < 0: cur_remain = 0
@@ -55,9 +51,6 @@ def clac_remain_current(date:int, latitude:float, vol_bat:float):
         
         cur_remain_list.append(cur_remain)
         t_list.append(t)
-
-    # plt.plot(t_list, cur_remain_list)
-    # plt.show()
 
     return [t_list, cur_remain_list]
 
@@ -168,7 +161,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     w = 0.729 # Inertial weight
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
-    beta = 0.5 # Weight coefficient 1: fastest; 0: healthiest
+    beta = 0.3 # Weight coefficient 1: fastest; 0: healthiest
     iter = 0  # Initial iteration
     np.random.seed(N * d * ger) # set seed
 

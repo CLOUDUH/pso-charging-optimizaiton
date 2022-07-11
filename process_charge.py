@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 15:20:19
+LastEditTime: 2022-07-11 16:06:28
 Description: 
 '''
 
@@ -294,8 +294,8 @@ def battery_opt_charged(args:list):
 
 if __name__ == '__main__':
     
-    args1 = [[0.98703503, 1.70897805, 2.49398114, 5, 0], [2,2]]
-    args2 = [[0.90453935, 1.68994086, 2.53827688, 4.13408792, 0.1], [1,1]]
+    args1 = [[0.98703503, 1.70897805, 2.49398114, 5, 0], [1,1]]
+    args2 = [[0.68642165, 1.40734093, 1.82769659, 6.6, 0.05], [1,1]]
     [t1_log, t2_cost, volt1_log, cur1_log, soc1_log, temp1_log, cap1_log, soh1_log, _] = battery_opt_charged(args1)
     [t2_log, t2_cost, volt2_log, cur2_log, soc2_log, temp2_log, cap2_log, soh2_log, _] = battery_opt_charged(args2)
     [t3_log, volt3_log, cur3_log, soc3_log, temp3_log, cap3_log, soh3_log] = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
