@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-10 00:31:50
+LastEditTime: 2022-07-11 15:42:57
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -313,7 +313,7 @@ if __name__ == '__main__':
         [iter, policy_seek[:,1],'CC2','v','g',1,0.01],
         [iter, policy_seek[:,2],'CC3','v','b',1,0.01],
         [iter, policy_seek[:,3],'Pulse','v','y',1,0.01]]
-    sciplt(policy_plot, "Iteration", "Policy(A)", "Policy of Particle", "lower right", [0,30], [0,6])
+    sciplt(policy_plot, "Iteration", "Policy(A)", "Policy of Particle", "lower right", [0,30], [0,6.6])
 
     plt.subplot(G[1,1])
     t_plot = [
@@ -322,6 +322,6 @@ if __name__ == '__main__':
         [iter, t_seek[:,2],'CC2','v','g',1,0.01],
         [iter, t_seek[:,3],'CC3','v','b',1,0.01],
         [iter, t_seek[:,4],'Pulse','v','y',1,0.01]]
-    sciplt(t_plot, "Iteration", "Time(t)", "Charging Time of Particle", "lower right", [0,30], [0,5000])
+    sciplt(t_plot, "Iteration", "Time(t)", "Charging Time of Particle", "lower right", [0,30], [0,4500])
 
     plt.show()
