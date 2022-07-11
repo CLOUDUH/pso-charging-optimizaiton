@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 16:01:27
+LastEditTime: 2022-07-11 16:30:21
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -161,7 +161,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     w = 0.729 # Inertial weight
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
-    beta = 0.3 # Weight coefficient 1: fastest; 0: healthiest
+    beta = 0.2 # Weight coefficient 1: fastest; 0: healthiest
     iter = 0  # Initial iteration
     np.random.seed(N * d * ger) # set seed
 
@@ -173,7 +173,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
     policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-2) 
     policy_limit_pulse = np.array([[0],[6.6]])
-    policy_limit_range = np.array([[0.05],[0.2]])
+    policy_limit_range = np.array([[0],[0.2]])
     policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse, policy_limit_range)) # Charging crrent limits (2-d)
 
     vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-2) 

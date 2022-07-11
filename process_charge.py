@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 16:06:28
+LastEditTime: 2022-07-11 16:33:58
 Description: 
 '''
 
@@ -294,8 +294,8 @@ def battery_opt_charged(args:list):
 
 if __name__ == '__main__':
     
-    args1 = [[0.98703503, 1.70897805, 2.49398114, 5, 0], [1,1]]
-    args2 = [[0.68642165, 1.40734093, 1.82769659, 6.6, 0.05], [1,1]]
+    args1 = [[0.89074874, 1.6849553, 2.41528686, 6.6, 0.1], [1,1]]
+    args2 = [[0.55958162, 1.11266183, 1.66596931, 6.39172209, 0.07641518], [1,1]]
     [t1_log, t2_cost, volt1_log, cur1_log, soc1_log, temp1_log, cap1_log, soh1_log, _] = battery_opt_charged(args1)
     [t2_log, t2_cost, volt2_log, cur2_log, soc2_log, temp2_log, cap2_log, soh2_log, _] = battery_opt_charged(args2)
     [t3_log, volt3_log, cur3_log, soc3_log, temp3_log, cap3_log, soh3_log] = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
@@ -303,26 +303,26 @@ if __name__ == '__main__':
     x_limit = [0, max(t1_log[-1], t2_log[-1])+200]
 
     plt.subplot(231)
-    volt_plot = [[t1_log,volt1_log,'PSO-CC','o','r',500,0.01], [t2_log,volt2_log,'PSO-Pulse','v','g',500,0.01], [t3_log,volt3_log,'CCCV','s','b',500,0.01]]
+    volt_plot = [[t1_log,volt1_log,'PSO-Fixed','o','r',500,0.01], [t2_log,volt2_log,'PSO-Variable','v','g',500,0.01], [t3_log,volt3_log,'CCCV','s','b',500,0.01]]
     sciplt(volt_plot, "Time(s)", "Voltage(V)", "Terminal Voltage", "lower right", x_limit, [2.8,4.3])
 
     plt.subplot(232)
-    cur_plot = [[t1_log,cur1_log,'PSO-CC','o','r',500,0.01], [t2_log,cur2_log,'PSO-Pulse','v','g',500,0.01], [t3_log,cur3_log,'CCCV','s','b',500,0.01]]
+    cur_plot = [[t1_log,cur1_log,'PSO-Fixed','o','r',500,0.01], [t2_log,cur2_log,'PSO-Variable','v','g',500,0.01], [t3_log,cur3_log,'CCCV','s','b',500,0.01]]
     sciplt(cur_plot, "Time(s)", "Current(A)", "Current", "upper left", x_limit, [0,6])
 
     plt.subplot(233)
-    soc_plot = [[t1_log,soc1_log,'PSO-CC','o','r',500,0.01], [t2_log,soc2_log,'PSO-Pulse','v','g',500,0.01], [t3_log,soc3_log,'CCCV','s','b',500,0.01]]
+    soc_plot = [[t1_log,soc1_log,'PSO-Fixed','o','r',500,0.01], [t2_log,soc2_log,'PSO-Variable','v','g',500,0.01], [t3_log,soc3_log,'CCCV','s','b',500,0.01]]
     sciplt(soc_plot, "Time(s)", "SOC(%)", "State of Charge", "lower right", x_limit, [0,1])
 
     plt.subplot(234)
-    temp_plot = [[t1_log,temp1_log,'PSO-CC','o','r',500,0.01], [t2_log,temp2_log,'PSO-Pulse','v','g',500,0.01], [t3_log,temp3_log,'CCCV','s','b',500,0.01]]
+    temp_plot = [[t1_log,temp1_log,'PSO-Fixed','o','r',500,0.01], [t2_log,temp2_log,'PSO-Variable','v','g',500,0.01], [t3_log,temp3_log,'CCCV','s','b',500,0.01]]
     sciplt(temp_plot, "Time(s)", "Temperature(K)", "Temperature", "lower right", x_limit, [280,320])
 
     plt.subplot(235)
-    cap_plot = [[t1_log,cap1_log,'PSO-CC','o','r',500,0.01], [t2_log,cap2_log,'PSO-Pulse','v','g',500,0.01], [t3_log,cap3_log,'CCCV','s','b',500,0.01]]
+    cap_plot = [[t1_log,cap1_log,'PSO-Fixed','o','r',500,0.01], [t2_log,cap2_log,'PSO-Variable','v','g',500,0.01], [t3_log,cap3_log,'CCCV','s','b',500,0.01]]
     sciplt(cap_plot, "Time(s)", "Capacity(Ah)", "Capacity", "upper right", x_limit, [3.0,3.4])
 
     plt.subplot(236)
-    soh_plot = [[t1_log,soh1_log,'PSO-CC','o','r',500,0.01], [t2_log,soh2_log,'PSO-Pulse','v','g',500,0.01], [t3_log,soh3_log,'CCCV','s','b',500,0.01]]
+    soh_plot = [[t1_log,soh1_log,'PSO-Fixed','o','r',500,0.01], [t2_log,soh2_log,'PSO-Variable','v','g',500,0.01], [t3_log,soh3_log,'CCCV','s','b',500,0.01]]
     sciplt(soh_plot, "Time(s)", "SOH(%)", "State of Health", "upper right", x_limit, [0.6,1])
     plt.show()
