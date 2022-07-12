@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 16:30:21
+LastEditTime: 2022-07-11 20:29:20
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -135,7 +135,7 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
 
     return [J, J_anxiety, J_SoH]
 
-def particle_swarm_optimization(N:int, d:int, ger:int):
+def particle_swarm_optimization(N:int, d:int, ger:int, beta:float):
     '''Particle swarm optimization
     Args:
         N: Particle swarm number
@@ -161,7 +161,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     w = 0.729 # Inertial weight
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
-    beta = 0.2 # Weight coefficient 1: fastest; 0: healthiest
+    # beta = 0.5 # Weight coefficient 1: fastest; 0: healthiest
     iter = 0  # Initial iteration
     np.random.seed(N * d * ger) # set seed
 
@@ -212,18 +212,14 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         for j in range(N): 
             args = [x[j].tolist(), [iter,j]]
-            # print(args)
-            # args = np.insert(args,4,[iter,j]) # add iteration and particle number
             processes.append(args)
 
         results = pool.map(battery_opt_charged, processes) # map the function to the pool !!!
-        # results = pool.map(battery_pulse_charged, processes) # map the function to the pool !!!
 
         pool.close() # Parallel computing
         pool.join() # Wait all thread to finish
 
         for j in range(N): 
-            # [t_log[iter,j], _, SoH, _, flag] = results[j] # get the result
             [_, t_log[iter,j], _, _, _, _, _, soh_log, flag] = results[j] # get the result
             SoH = soh_log[-1]
 
@@ -271,8 +267,10 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
                 elif lsat[j] == 2:
                     x[j,k] = policy_limit[1,k]
 
-        print("Iteration:",iter, "\nPolicy of Swarm:\n", policy_swarm, 
-            "\nTime of Swarm:\n", t_swarm, "\nFunction Value of Swarm:\n", J_swarm, "\n")
+        # print("Iteration:",iter, "\nPolicy of Swarm:\n", policy_swarm, 
+        #     "\nTime of Swarm:\n", t_swarm, "\nFunction Value of Swarm:\n", J_swarm, "\n")
+        
+        print("Beta:", beta, "Iteration:", iter, "Policy:", policy_swarm)
 
         policy_seek[iter] = policy_swarm
         J_seek[iter] = J_swarm
@@ -289,7 +287,7 @@ if __name__ == '__main__':
     ger = 30
 
     [policy_log, policy_seek, policy_swarm, J_log, J_seek, J_swarm, t_log, t_seek, t_swarm] = \
-        particle_swarm_optimization(N, d, ger)
+        particle_swarm_optimization(N, d, ger, 0.1)
 
     iter = np.arange(0,ger)
 

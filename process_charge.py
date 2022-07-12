@@ -2,12 +2,12 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 16:33:58
+LastEditTime: 2022-07-11 22:25:46
 Description: 
 '''
 
 import matplotlib.pyplot as plt
-from pylab import mpl
+import numpy as np
 
 from func.sciplt import sciplt
 from model_battery import battery_model
@@ -166,10 +166,14 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             temp_log.append(temp)
             cap_log.append(cap)
             soh_log.append(soh)
-            t = t + 1
+            t += 1
 
-        while t < t_cycle + cycle:
+        while t < t_cycle + 20:
             [volt, soc, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, temp, cap)
+
+            # if volt_log[-1] - volt < 3e-3:
+            #     break
+
             t_log.append(t)
             volt_log.append(volt)
             cur_log.append(0)
@@ -177,12 +181,12 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             temp_log.append(temp)
             cap_log.append(cap)
             soh_log.append(soh)
-            t = t + 1
-        
+            t += 1 
+
         if t >= 12 * 3600: # Timeout    
             flag_timeout = 1 
             break
-    
+        
     
     t_charge = t_log[-1] - t_start
 
@@ -285,20 +289,51 @@ def battery_opt_charged(args:list):
     t_cost_display = [round(t_cost[0]/3600 ,2), round(t_cost[1]/3600,2), round(t_cost[2]/3600,2), round(t_cost[3]/3600,2), round(t_cost[4]/3600,2)]
     # print("Thread:", thread, "Policy:", policy_display, "Time Cost:", t_cost_display)
 
-    print("Iter-Num:", iter, "-", thread, "\tSoH:",  round(100 * soh_log[-1], 3), "\tTemp:", 
-        round(temp_log[-1], 3), "\tPly:", policy_display,"\tTime:", t_cost_display)
+    # print("Iter-Num:", iter, "-", thread, "\tSoH:",  round(100 * soh_log[-1], 3), "\tTemp:", 
+    #     round(temp_log[-1], 3), "\tPly:", policy_display,"\tTime:", t_cost_display)
 
     # return [t_cost, cap_log[-1], soh_log[-1], temp_log[-1], flag_timeout]
     
     return [t_log, t_cost, volt_log, cur_log, soc_log, temp_log, cap_log, soh_log, flag_timeout]
 
+def object_function(t_cost:list, SoH:float, beta:float):
+    t_m = 12*3600 # average dayttime (s)
+    t_total = t_cost[0]
+
+    J_anxiety = np.exp((t_total / t_m) - 1) * (
+                0.4 * np.exp(- t_cost[1]/t_total) + 
+                0.3 * np.exp(- t_cost[2]/t_total) + 
+                0.2 * np.exp(- t_cost[3]/t_total) + 
+                0.1 * np.exp(- t_cost[4]/t_total))
+
+    J_SoH = (1 - SoH)
+
+    J = beta * J_anxiety + (1 - beta) * J_SoH
+
+    return [J, J_anxiety, J_SoH]
+
 if __name__ == '__main__':
     
-    args1 = [[0.89074874, 1.6849553, 2.41528686, 6.6, 0.1], [1,1]]
-    args2 = [[0.55958162, 1.11266183, 1.66596931, 6.39172209, 0.07641518], [1,1]]
-    [t1_log, t2_cost, volt1_log, cur1_log, soc1_log, temp1_log, cap1_log, soh1_log, _] = battery_opt_charged(args1)
+    # args1 = [[0.54600818, 1.10025945, 1.54652531, 6.6, 0.1], [1,1]]
+    # args2 = [[0.55958162, 1.11266183, 1.66596931, 6.39172209, 0.07641518], [1,1]]
+    # [t1_log, t1_cost, volt1_log, cur1_log, soc1_log, temp1_log, cap1_log, soh1_log, _] = battery_opt_charged(args1)
+    # [t2_log, t2_cost, volt2_log, cur2_log, soc2_log, temp2_log, cap2_log, soh2_log, _] = battery_opt_charged(args2)
+    # [t3_log, volt3_log, cur3_log, soc3_log, temp3_log, cap3_log, soh3_log] = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
+
+    args1 = [[1, 2, 1.5, 6.6, 0.2], [1,1]]
+    args2 = [[1, 2, 1.5, 6.6, 0.1], [1,1]]
+    args3 = [[1, 2, 1.5, 6.6, 0.0], [1,1]]
+
+    [t1_log, t1_cost, volt1_log, cur1_log, soc1_log, temp1_log, cap1_log, soh1_log, _] = battery_opt_charged(args1)
     [t2_log, t2_cost, volt2_log, cur2_log, soc2_log, temp2_log, cap2_log, soh2_log, _] = battery_opt_charged(args2)
-    [t3_log, volt3_log, cur3_log, soc3_log, temp3_log, cap3_log, soh3_log] = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
+    [t3_log, t3_cost, volt3_log, cur3_log, soc3_log, temp3_log, cap3_log, soh3_log, _] = battery_opt_charged(args3)
+    # [t3_log, volt3_log, cur3_log, soc3_log, temp3_log, cap3_log, soh3_log] = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
+
+    J_1 = object_function(t1_cost, soh1_log[-1], 0.5)
+    J_2 = object_function(t2_cost, soh2_log[-1], 0.5)
+    J_3 = object_function(t3_cost, soh3_log[-1], 0.5)
+    # J_cccv = object_function([], soh3_log[-1], 0.5)
+    print("except:", J_1, "\nnone:", J_2, "\nbitch:", J_3)
 
     x_limit = [0, max(t1_log[-1], t2_log[-1])+200]
 

@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 15:55:50
+LastEditTime: 2022-07-11 23:24:13
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -28,7 +28,7 @@ tau1_lookup = interp2d(TEMP_ARRAY, SOC_ARRAY, TAU1_TABLE, kind='linear')
 
 cap_original = 3.3 # Battery Capacity (Ah)
 
-def equivalent_circuit_model(t_p:float, cur:float, temp:float, soc:float): 
+def equivalent_circuit_model(t_p:float, cur:float, temp:float, soc:float, volt_tau1:float): 
     '''Battery 1-RC Equivalent Circuit Model
     Args:
         t_p: Step (s)
@@ -42,12 +42,15 @@ def equivalent_circuit_model(t_p:float, cur:float, temp:float, soc:float):
 
     ocv = ocv_lookup(temp, soc)[0]
     r0 = r0_lookup(temp, soc)[0]
+    r1 = r1_lookup(temp, soc)[0]
     tau1 = tau1_lookup(temp, soc)[0]
-
-    volt = ocv + cur * (1 - np.exp(t_p / tau1)) + cur * r0
+    
     soc = soc + t_p * cur / (3600 * cap_original)
+    volt_tau1 = np.exp(- t_p / tau1) * volt_tau1 + r1 * (1 - np.exp(- t_p / tau1)) * cur
 
-    return [volt, soc]
+    volt = ocv + volt_tau1 + cur * r0
+    
+    return [volt, soc, volt_tau1]
 
 def thermal_model(t_p:float, cur:float, temp:float, soc:float): 
     '''Battery Thermal Model
@@ -113,7 +116,7 @@ def aging_model(t_p:float, cur:float, temp:float, cap:float):
 
     return [cap, cap_loss ,soh]
 
-def battery_model(t_p:float, cur:float, soc:float, temp:float, cap:float):
+def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, cap:float):
     '''Battery Charging Model
     Args:
         t_p: Step (s)
@@ -131,16 +134,43 @@ def battery_model(t_p:float, cur:float, soc:float, temp:float, cap:float):
         This function is single step model, requires a while loop outside
     '''
 
-    [volt, soc] = equivalent_circuit_model(t_p, cur, temp, soc)
+    [volt, soc, volt_tau1] = equivalent_circuit_model(t_p, cur, temp, soc, volt_tau1)
     temp = thermal_model(t_p, cur, temp, soc)
     [cap, cap_loss ,soh] = aging_model(t_p, cur, temp, cap)
     
     # print("Cur:", round(cur, 2), "SoC:", round(soc, 2), "Temp:", round(temp,2), "Qloss:", round(cap,2), "SoH:", round(soh,2))
 
-    return [volt, soc, temp, cap, cap_loss, soh]
+    return [volt, soc, volt_tau1, temp, cap, cap_loss, soh]
 
 if __name__ == '__main__':
 
-    policy1 = [0.98703503, 1.70897805, 2.49398114, 6.6]
-    policy2 = [0.90453935, 1.68994086, 2.53827688, 4.13408792]
+    a = [1, 1, 5, 1, 1, 1, 1, 1, 1, 1]
+    voltl = []
+    t = 0
+    tl = []
+
+    cap = 3.3
+    volt_tau1 = 0
+    soc = 0.5
+    temp = 298.15
+
+    for cur in a:
+        [volt, soc, volt_tau1, temp, cap, cap_loss, soh] = battery_model(1, cur, soc, volt_tau1, temp, cap)
+        tl.append(t)
+        voltl.append(volt)
+        t += 1
+    plt.plot(tl, voltl)
+
+    voltl2 = []
+    t = 0
+    tl2 = []
+
+    for cur in a:
+        [volt, soc, volt_tau1, temp, cap, cap_loss, soh] = battery_model(0.01, cur, soc, volt_tau1, temp, cap)
+        tl2.append(t)
+        voltl2.append(volt)
+        t += 0.1
+    plt.plot(tl2, voltl2)
+
+    plt.show()
 
