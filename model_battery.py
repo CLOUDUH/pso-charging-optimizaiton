@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 14:49:17
+LastEditTime: 2022-07-16 15:16:25
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -141,7 +141,7 @@ def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, 
     
     # print("Volt:", round(volt,3), "Cur:", round(cur, 2), "SoC:", round(soc, 2), "Temp:", round(temp,2), "Qloss:", round(cap,2), "SoH:", round(soh,2))
 
-    return [volt, soc, volt_tau1, pwr, temp, cap, cap_loss, soh]
+    return [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh]
 
 if __name__ == '__main__':
 
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     t_p = 0.01
 
     while soc < 1:
-        [volt, soc, volt_tau1, pwr, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
         tl.append(t)
         voltl.append(volt)
         t += t_p
