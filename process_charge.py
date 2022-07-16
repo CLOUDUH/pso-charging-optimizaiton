@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 16:07:16
+LastEditTime: 2022-07-16 16:48:30
 Description: 
 '''
 
@@ -259,6 +259,7 @@ def battery_opt_charged(args:list):
     cur_cc2 = args[0][1]
     cur_cc3 = args[0][2]
     cur_pulse = args[0][3]
+    range_pulse = args[0][4]
 
     iter = int(args[1][0])
     thread = int(args[1][1])
