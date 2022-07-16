@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 15:42:57
+LastEditTime: 2022-07-16 15:04:31
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -13,53 +13,11 @@ from matplotlib import gridspec
 import multiprocessing as mp
 
 from func.sciplt import sciplt
-from model_photovoltaic import photovoltaic_model
-from model_photovoltaic import irradiation_cal
-from model_mppt import mppt_cal
-from model_load import load_model
+from model_photovoltaic import clac_remain_current
 from process_charge import battery_opt_charged
 
 Qe = 3.3 # Battery Capacity (Ah)
 ratio_pulse = 0.2 # Duty ratio of pulse charging
-
-def clac_remain_current(date:int, latitude:float, vol_bat:float):
-    '''Calculate Remain Power and Current
-    Args:
-        date: Today 0-365 
-        latitude: (°)
-        vol_bat: Battery voltage (V)
-    Returns:
-        t_pv_list: Time list (h)
-        cur_remain_list: Remain current list (A)
-    '''
-
-    t = 0
-    Temp = 298.15
-    t_list = []
-    cur_remain_list = []
-    cur_solar_list = []
-
-    while t <= 24:
-
-        rad = irradiation_cal(t, date, latitude)
-        [cur_solar, _, pwr_solar] = photovoltaic_model(rad, Temp, vol_bat)
-
-        # pwr_load = load_model(t)
-        # cur_load = pwr_load / vol_bat
-        # cur_remain = cur_solar - cur_load
-
-        cur_remain = cur_solar # remove load rencently
-        
-        if cur_remain < 0: cur_remain = 0
-        t = t + 1/3600
-        
-        cur_remain_list.append(cur_remain)
-        t_list.append(t)
-
-    # plt.plot(t_list, cur_remain_list)
-    # plt.show()
-
-    return [t_list, cur_remain_list]
 
 def match_policy(policy:list, t_pv_list:list, cur_pv_list:list):
     '''Calculate Remain Current
@@ -68,7 +26,7 @@ def match_policy(policy:list, t_pv_list:list, cur_pv_list:list):
         t_pv_list: Time list
         cur_pv_list: Current list
     Returns:   
-        t_remain_list: Remain time list (h)
+        t_remain_list: Remain time list (s)
         cur_remain_list: Remain current list (A)
     '''
 
@@ -77,10 +35,10 @@ def match_policy(policy:list, t_pv_list:list, cur_pv_list:list):
     except:
         t1 = np.inf
  
-    t2 = t1 + 0.2 * Qe / policy[0]
-    t3 = t2 + 0.2 * Qe / policy[1]
-    t4 = t3 + 0.2 * Qe / policy[2]
-    t5 = t4 + 0.2 * Qe / (policy[3] * ratio_pulse)
+    t2 = t1 + 0.2 * 3600 * Qe / policy[0]
+    t3 = t2 + 0.2 * 3600 * Qe / policy[1]
+    t4 = t3 + 0.2 * 3600 * Qe / policy[2]
+    t5 = t4 + 0.2 * 3600 * Qe / (policy[3] * ratio_pulse)
 
     t_list = [t1, t2, t3, t4, t5] # The time point of each charge 
 
@@ -115,12 +73,12 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
     t_m = 12*3600 # average dayttime (s)
     t_total = t_cost[0]
 
-    J_anxiety = np.exp((t_total / t_m) - 1) * (
+    J_anxiety = (t_total / t_m) * (
                 0.4 * np.exp(- t_cost[1]/t_total) + 
                 0.3 * np.exp(- t_cost[2]/t_total) + 
                 0.2 * np.exp(- t_cost[3]/t_total) + 
                 0.1 * np.exp(- t_cost[4]/t_total))
-
+                
     J_SoH = (1 - SoH)
 
     J = beta * J_anxiety + (1 - beta) * J_SoH
@@ -142,7 +100,7 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
 
     return [J, J_anxiety, J_SoH]
 
-def particle_swarm_optimization(N:int, d:int, ger:int):
+def particle_swarm_optimization(N:int, d:int, ger:int, beta:float):
     '''Particle swarm optimization
     Args:
         N: Particle swarm number
@@ -168,7 +126,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     w = 0.729 # Inertial weight
     c1 = 1.49115 # Self learning factor
     c2 = 1.49115 # Swarm learning factor 
-    beta = 0.5 # Weight coefficient 1: fastest; 0: healthiest
+    # beta = 0.5 # Weight coefficient 1: fastest; 0: healthiest
     iter = 0  # Initial iteration
     np.random.seed(N * d * ger) # set seed
 
@@ -176,21 +134,22 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     x = np.zeros((N,d)) # Particle Position (N-d)
     v = np.zeros((N,d)) # Particle Velcocity (N-d)
 
-    [t_pv, cur_pv] = clac_remain_current(date, latitude, vol_bat) # caclulate the remain current
+    [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30) #
 
-    policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-1) 
-    policy_limit_pulse = np.array([[0],[6.6]])
-    policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse)) # Charging crrent limits (2-d)
+    policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-2) 
+    policy_limit_pulse = np.array([[0],[3.3]])
+    policy_limit_range = np.array([[0],[0.2]])
+    policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse, policy_limit_range)) # Charging crrent limits (2-d)
 
-    vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-1) 
+    vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-2) 
     vlimit_pulse = np.array([[-0.5],[0.5]])
-    vlimit = np.hstack((vlimit_cc, vlimit_pulse)) # Velocity limits (2-d)
+    vlimit_range = np.array([[-0.01],[0.01]])
+    vlimit = np.hstack((vlimit_cc, vlimit_pulse, vlimit_range)) # Velocity limits (2-d)
 
     # Initialize the particle position
     for i in range(d):
         x[:,i] = np.matlib.repmat(policy_limit[0,i],1,N) + \
-                (policy_limit[1,i] - policy_limit[0,i]) * np.random.rand(1,N)
-        
+                (policy_limit[1,i] - policy_limit[0,i]) * np.random.rand(1,N)  
     # Initialize the particle velocity
     for i in range(d):
         v[:,i] = np.matlib.repmat(vlimit[0,i],1,N) + \
@@ -206,10 +165,10 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
     J_swarm = [1, 0, 0] # Optimal objective function value of swarm (1)
     J_seek = np.zeros((ger,3)) # save each iteration best objective function value (ger)
 
-    t_log = np.zeros((ger,N,d+1)) # Charging time of each particles-iteration (ger-N-d)
-    t_particle = np.zeros((N,d+1)) # Charging time of particle (N)
-    t_swarm = np.zeros((1,d+1)) # Charging time of swarm (1)
-    t_seek = np.zeros((ger,d+1)) # save each iteration best charging time (ger)
+    t_log = np.zeros((ger,N,d)) # Charging time of each particles-iteration (ger-N-d)
+    t_particle = np.zeros((N,d)) # Charging time of particle (N)
+    t_swarm = np.zeros((1,d)) # Charging time of swarm (1)
+    t_seek = np.zeros((ger,d)) # save each iteration best charging time (ger)
 
     while iter <= ger - 1:
 
@@ -217,19 +176,15 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
         processes = [] # create a list of processes
 
         for j in range(N): 
-            args = [x[j].tolist(), [iter,j], [0,0.3,0.6,0.9,0.99]]
-            # print(args)
-            # args = np.insert(args,4,[iter,j]) # add iteration and particle number
+            args = [x[j].tolist(), [iter,j]]
             processes.append(args)
 
         results = pool.map(battery_opt_charged, processes) # map the function to the pool !!!
-        # results = pool.map(battery_pulse_charged, processes) # map the function to the pool !!!
 
         pool.close() # Parallel computing
         pool.join() # Wait all thread to finish
 
         for j in range(N): 
-            # [t_log[iter,j], _, SoH, _, flag] = results[j] # get the result
             [_, t_log[iter,j], _, _, _, _, _, soh_log, flag] = results[j] # get the result
             SoH = soh_log[-1]
 
@@ -279,6 +234,8 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 
         print("Iteration:",iter, "\nPolicy of Swarm:\n", policy_swarm, 
             "\nTime of Swarm:\n", t_swarm, "\nFunction Value of Swarm:\n", J_swarm, "\n")
+        
+        # print("Beta:", beta, "Iteration:", iter, "Policy:", policy_swarm)
 
         policy_seek[iter] = policy_swarm
         J_seek[iter] = J_swarm
@@ -291,11 +248,11 @@ def particle_swarm_optimization(N:int, d:int, ger:int):
 if __name__ == '__main__':
 
     N = 20
-    d = 4
-    ger = 30
+    d = 5
+    ger = 50
 
     [policy_log, policy_seek, policy_swarm, J_log, J_seek, J_swarm, t_log, t_seek, t_swarm] = \
-        particle_swarm_optimization(N, d, ger)
+        particle_swarm_optimization(N, d, ger, 0.5)
 
     iter = np.arange(0,ger)
 
