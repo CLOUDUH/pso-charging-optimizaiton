@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-11 23:24:13
+LastEditTime: 2022-07-16 14:49:17
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -137,40 +137,32 @@ def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, 
     [volt, soc, volt_tau1] = equivalent_circuit_model(t_p, cur, temp, soc, volt_tau1)
     temp = thermal_model(t_p, cur, temp, soc)
     [cap, cap_loss ,soh] = aging_model(t_p, cur, temp, cap)
+    pwr = volt * cur
     
-    # print("Cur:", round(cur, 2), "SoC:", round(soc, 2), "Temp:", round(temp,2), "Qloss:", round(cap,2), "SoH:", round(soh,2))
+    # print("Volt:", round(volt,3), "Cur:", round(cur, 2), "SoC:", round(soc, 2), "Temp:", round(temp,2), "Qloss:", round(cap,2), "SoH:", round(soh,2))
 
-    return [volt, soc, volt_tau1, temp, cap, cap_loss, soh]
+    return [volt, soc, volt_tau1, pwr, temp, cap, cap_loss, soh]
 
 if __name__ == '__main__':
 
-    a = [1, 1, 5, 1, 1, 1, 1, 1, 1, 1]
+    t = 0
     voltl = []
     t = 0
     tl = []
 
     cap = 3.3
+    soc = 0
+    cur = 1.65
     volt_tau1 = 0
-    soc = 0.5
     temp = 298.15
+    t_p = 0.01
 
-    for cur in a:
-        [volt, soc, volt_tau1, temp, cap, cap_loss, soh] = battery_model(1, cur, soc, volt_tau1, temp, cap)
+    while soc < 1:
+        [volt, soc, volt_tau1, pwr, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
         tl.append(t)
         voltl.append(volt)
-        t += 1
+        t += t_p
     plt.plot(tl, voltl)
-
-    voltl2 = []
-    t = 0
-    tl2 = []
-
-    for cur in a:
-        [volt, soc, volt_tau1, temp, cap, cap_loss, soh] = battery_model(0.01, cur, soc, volt_tau1, temp, cap)
-        tl2.append(t)
-        voltl2.append(volt)
-        t += 0.1
-    plt.plot(tl2, voltl2)
+    plt.grid()
 
     plt.show()
-

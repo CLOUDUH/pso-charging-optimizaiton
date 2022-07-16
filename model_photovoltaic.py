@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-04 21:35:33
+LastEditTime: 2022-07-16 14:41:25
 Description: 
     Solar energy calculate
     - Solar irradiation calculate
@@ -55,8 +55,8 @@ def photovoltaic_model(irradiation:float, Temp:float, volt:float):
         pwr_mp: Maximum power (W)
     '''
 
-    vol_oc_ref = 24 # Open circuit voltage
-    vol_mp_ref = 20 # Maximum power point voltage
+    vol_oc_ref = 12 # Open circuit voltage
+    vol_mp_ref = 10 # Maximum power point voltage
     cur_sc_ref = 1.2 # Short circuit current
     cur_mp_ref = 1 # Maximum power point current
 
@@ -80,16 +80,58 @@ def photovoltaic_model(irradiation:float, Temp:float, volt:float):
 
     return [cur, pwr, pwr_mp]
 
+def clac_remain_current(t_p:float, date:int, latitude:float):
+    '''Calculate Remain Power and Current
+    Args:
+        date: Today 0-365 
+        latitude: (°)
+        vol_bat: Battery voltage (V)
+    Returns:
+        t_pv_list: Time list (s)
+        cur_remain_list: Remain current list (A)
+    '''
 
+    t = 0
+    Temp = 298.15
+    vol_bat = 4.2 # Maximum battery voltage
+    egy_solar = 0
+    t_list = [0]
+    cur_list = [0]
+    pwr_list = [0]
+    egy_list = [0]
+
+    while t <= 24 * 3600:
+
+        rad = irradiation_cal(t/3600, date, latitude)
+        [cur_solar, pwr_solar, _] = photovoltaic_model(rad, Temp, vol_bat)
+       
+        if pwr_solar < 0: pwr_solar = 0
+
+        if pwr_list[-1] == 0 and pwr_solar > 0:
+            t_riseup = t
+        elif pwr_list[-1] > 0 and pwr_solar == 0:
+            t_falldown = t
+        else:
+            pass
+        
+        egy_solar = egy_solar + pwr_solar * t_p / 3600
+
+        t = t + t_p
+        
+        cur_list.append(cur_solar)
+        pwr_list.append(pwr_solar)
+        egy_list.append(egy_solar)
+        t_list.append(t)
+
+    print("Power(W):", round(max(pwr_list),2), "Energy(Wh):", round(egy_list[-1],2), "Time(h):", round(t_riseup/3600,2), round(t_falldown/3600,2))
+
+    return [t_list, cur_list, pwr_list, egy_list, t_riseup, t_falldown]
 
 if __name__ == '__main__':
 
-    t = 0
-    
-    while t <= 24:
-        print(irradiation_cal(t, 60, 30))
-        t = t + 0.1
-
-    print(photovoltaic_model(1000, 298.15, 50))
+    [t_pv, cur_list, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
+    plt.plot(t_pv, pwr_pv)
+    plt.plot(t_pv, egy_pv)
+    plt.show()
 
     
