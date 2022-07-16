@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 14:35:51
+LastEditTime: 2022-07-16 16:25:43
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -94,7 +94,8 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
         if i == 0: J = np.inf
 
     for i in range(len(cur_remain_list)):
-        if t_remain_list[i] < policy[i]:    
+        if t_remain_list[i] < policy[i]:
+            print("111111111") #TODO
             J = np.inf
             break
 
@@ -185,8 +186,8 @@ def particle_swarm_optimization(N:int, d:int, ger:int, beta:float):
         pool.join() # Wait all thread to finish
 
         for j in range(N): 
-            [_, t_log[iter,j], _, _, _, _, _, soh_log, flag] = results[j] # get the result
-            SoH = soh_log[-1]
+            [t_log[iter,j], flag, data_log] = results[j]
+            SoH = data_log['soh'][-1]
 
             [t_remian, cur_remain] = match_policy(x[j], t_pv, cur_pv) # match the policy
             
