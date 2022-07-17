@@ -57,8 +57,8 @@ def photovoltaic_model(irradiation:float, Temp:float, volt:float):
 
     vol_oc_ref = 12 # Open circuit voltage
     vol_mp_ref = 10 # Maximum power point voltage
-    cur_sc_ref = 1.2 # Short circuit current
-    cur_mp_ref = 1 # Maximum power point current
+    cur_sc_ref = 1.8 # Short circuit current
+    cur_mp_ref = 1.5 # Maximum power point current
 
     volt_oc = vol_oc_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))
     volt_mp = vol_mp_ref * np.log(np.exp(1) + 0.0005 * (abs(irradiation - 1000))) * (1 - 0.00288 * (abs(Temp - 298.15)))

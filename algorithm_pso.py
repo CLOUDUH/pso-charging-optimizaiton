@@ -2,11 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-<<<<<<< HEAD
-LastEditTime: 2022-07-16 15:04:31
-=======
-LastEditTime: 2022-07-16 16:25:43
->>>>>>> dev
+LastEditTime: 2022-07-17 22:37:12
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -14,9 +10,11 @@ Description: Battery charging optimization by PSO
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from scipy.interpolate import interp1d
 import multiprocessing as mp
 
 from func.sciplt import sciplt
+from func.rev_interp import rev_interp
 from model_photovoltaic import clac_remain_current
 from process_charge import battery_opt_charged
 
@@ -33,9 +31,8 @@ def match_policy(policy:list, t_pv_list:list, cur_pv_list:list):
         t_remain_list: Remain time list (s)
         cur_remain_list: Remain current list (A)
     '''
-
     try:
-        t1 = np.interp(policy[0], cur_pv_list, t_pv_list)
+        t1 = rev_interp(t_pv_list, cur_pv_list, policy[0])
     except:
         t1 = np.inf
  
@@ -96,10 +93,9 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
     
     for i in policy:
         if i == 0: J = np.inf
-
+        
     for i in range(len(cur_remain_list)):
-        if t_remain_list[i] < policy[i]:
-            print("111111111") #TODO
+        if cur_remain_list[i] < policy[i]:
             J = np.inf
             break
 
@@ -139,7 +135,7 @@ def particle_swarm_optimization(N:int, d:int, ger:int, beta:float):
     x = np.zeros((N,d)) # Particle Position (N-d)
     v = np.zeros((N,d)) # Particle Velcocity (N-d)
 
-    [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30) #
+    [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
 
     policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-2) 
     policy_limit_pulse = np.array([[0],[3.3]])
@@ -287,3 +283,10 @@ if __name__ == '__main__':
     sciplt(t_plot, "Iteration", "Time(t)", "Charging Time of Particle", "lower right", [0,30], [0,4500])
 
     plt.show()
+
+    # [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
+    # t1 = rev_interp(t_pv, cur_pv, 2.8)
+    # print(t1)
+
+    # plt.plot(t_pv, cur_pv)
+    # plt.show()
