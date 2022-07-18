@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-17 22:40:21
+LastEditTime: 2022-07-18 21:34:56
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -13,6 +13,7 @@ from scipy.interpolate import interp2d
 import pandas as pd
 import numpy.matlib
 import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score
 
 SOC_ARRAY = np.arange(0, 1, 0.01)
 TEMP_ARRAY = [-10+273.15, 0+273.15, 25+273.15, 40+273.15, 60+273.15]
@@ -28,7 +29,7 @@ tau1_lookup = interp2d(TEMP_ARRAY, SOC_ARRAY, TAU1_TABLE, kind='linear')
 
 cap_original = 3.3 # Battery Capacity (Ah)
 
-def equivalent_circuit_model(t_p:float, cur:float, temp:float, soc:float, volt_tau1:float): 
+def equivalent_circuit_model(t_p:float, cur:float, temp:float, soc:float, volt_tau1:float, volt_tau2:float): 
     '''Battery 1-RC Equivalent Circuit Model
     Args:
         t_p: Step (s)
@@ -42,15 +43,18 @@ def equivalent_circuit_model(t_p:float, cur:float, temp:float, soc:float, volt_t
 
     ocv = ocv_lookup(temp, soc)[0]
     r0 = r0_lookup(temp, soc)[0]
-    r1 = r1_lookup(temp, soc)[0]
-    tau1 = tau1_lookup(temp, soc)[0]
-    
+    r1 = r1_lookup(temp, soc)[0] * 0.1 + 0.015
+    r2 = r1 + 0.02
+    tau2 = tau1_lookup(temp, soc)[0]
+    tau1 = 17 + 5 * tau2 / 200
+
     soc = soc + t_p * cur / (3600 * cap_original)
     volt_tau1 = np.exp(- t_p / tau1) * volt_tau1 + r1 * (1 - np.exp(- t_p / tau1)) * cur
+    volt_tau1 = np.exp(- t_p / tau2) * volt_tau2 + r2 * (1 - np.exp(- t_p / tau2)) * cur
 
-    volt = ocv + volt_tau1 + cur * r0
+    volt = ocv + volt_tau1 + volt_tau2 +cur * r0 
     
-    return [volt, soc, volt_tau1]
+    return [volt, soc, volt_tau1, volt_tau2]
 
 def thermal_model(t_p:float, cur:float, temp:float, soc:float): 
     '''Battery Thermal Model
@@ -116,7 +120,7 @@ def aging_model(t_p:float, cur:float, temp:float, cap:float):
 
     return [cap, cap_loss ,soh]
 
-def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, cap:float):
+def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, volt_tau2:float, temp:float, cap:float):
     '''Battery Charging Model
     Args:
         t_p: Step (s)
@@ -134,14 +138,14 @@ def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, 
         This function is single step model, requires a while loop outside
     '''
 
-    [volt, soc, volt_tau1] = equivalent_circuit_model(t_p, cur, temp, soc, volt_tau1)
+    [volt, soc, volt_tau1, volt_tau2] = equivalent_circuit_model(t_p, cur, temp, soc, volt_tau1, volt_tau2)
     temp = thermal_model(t_p, cur, temp, soc)
     [cap, cap_loss ,soh] = aging_model(t_p, cur, temp, cap)
     pwr = volt * cur
     
     # print("Volt:", round(volt,3), "Cur:", round(cur, 2), "SoC:", round(soc, 2), "Temp:", round(temp,2), "Qloss:", round(cap,2), "SoH:", round(soh,2))
 
-    return [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh]
+    return [soc, volt, pwr, volt_tau1, volt_tau2, temp, cap, cap_loss, soh]
 
 if __name__ == '__main__':
 

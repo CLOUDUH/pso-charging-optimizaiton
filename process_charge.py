@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 16:50:31
+LastEditTime: 2022-07-18 21:42:08
 Description: 
 '''
 
@@ -30,13 +30,14 @@ def cc_charge(t_p:float, cur:float, bdy:list, flag_timeout:int, data_log:dict):
     volt = data_log['volt'][-1]
     egy = data_log['egy'][-1]
     volt_tau1 = data_log['volt_tau1'][-1]
+    volt_tau2 = data_log['volt_tau2'][-1]
     temp = data_log['temp'][-1]
     cap = data_log['cap'][-1]
     
     t = t_start
 
     while soc >= bdy[0] and soc <=bdy[1]:
-        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+        [soc, volt, pwr, volt_tau1, volt_tau2, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, volt_tau2, temp, cap)
         egy = egy + pwr * t_p / 3600
 
         data_log['t'].append(t)
@@ -46,6 +47,7 @@ def cc_charge(t_p:float, cur:float, bdy:list, flag_timeout:int, data_log:dict):
         data_log['pwr'].append(pwr)
         data_log['egy'].append(egy)
         data_log['volt_tau1'].append(volt_tau1)
+        data_log['volt_tau2'].append(volt_tau2)
         data_log['temp'].append(temp)
         data_log['cap'].append(cap)
         data_log['cap_loss'].append(cap_loss)
@@ -80,6 +82,7 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
     volt = data_log['volt'][-1]
     egy = data_log['egy'][-1]
     volt_tau1 = data_log['volt_tau1'][-1]
+    volt_tau2 = data_log['volt_tau2'][-1]
     temp = data_log['temp'][-1]
     cap = data_log['cap'][-1]
 
@@ -95,7 +98,7 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
 
         if cur <= 6.5e-2: break
 
-        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+        [soc, volt, pwr, volt_tau1, volt_tau2, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, volt_tau2, temp, cap)
         egy = egy + pwr * t_p / 3600
 
         data_log['t'].append(t)
@@ -105,6 +108,7 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
         data_log['pwr'].append(pwr)
         data_log['egy'].append(egy)
         data_log['volt_tau1'].append(volt_tau1)
+        data_log['volt_tau2'].append(volt_tau2)
         data_log['temp'].append(temp)
         data_log['cap'].append(cap)
         data_log['cap_loss'].append(cap_loss)
@@ -139,6 +143,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
     volt = data_log['volt'][-1]
     egy = data_log['egy'][-1]
     volt_tau1 = data_log['volt_tau1'][-1]
+    volt_tau2 = data_log['volt_tau2'][-1]
     temp = data_log['temp'][-1]
     cap = data_log['cap'][-1]
         
@@ -147,7 +152,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
     while soc >= bdy[0] and soc <=bdy[1]:
         t_cycle = t
         while t < t_cycle + cycle * ratio:
-            [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+            [soc, volt, pwr, volt_tau1, volt_tau2, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, volt_tau2, temp, cap)
             egy = egy + pwr * t_p / 3600
 
             data_log['t'].append(t)
@@ -157,6 +162,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             data_log['pwr'].append(pwr)
             data_log['egy'].append(egy)
             data_log['volt_tau1'].append(volt_tau1)
+            data_log['volt_tau2'].append(volt_tau2)
             data_log['temp'].append(temp)
             data_log['cap'].append(cap)
             data_log['cap_loss'].append(cap_loss)
@@ -164,7 +170,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             t += t_p
 
         while volt > 4.05:
-            [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, volt_tau1, temp, cap)
+            [soc, volt, pwr, volt_tau1, volt_tau2, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, volt_tau1, volt_tau2, temp, cap)
             egy = 0
 
             if data_log['volt'][-1] - volt <= 3e-6:
@@ -177,6 +183,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             data_log['pwr'].append(pwr)
             data_log['egy'].append(egy)
             data_log['volt_tau1'].append(volt_tau1)
+            data_log['volt_tau2'].append(volt_tau2)
             data_log['temp'].append(temp)
             data_log['cap'].append(cap)
             data_log['cap_loss'].append(cap_loss)
@@ -212,6 +219,7 @@ def battery_cccv_charged(cc:float, cv:float, bdy:list):
         'pwr': [0],
         'egy': [0],
         'volt_tau1': [0], 
+        'volt_tau2': [0],
         'temp': [298.15], 
         'cap': [3.299],
         'cap_loss': [0.001],
@@ -250,6 +258,7 @@ def battery_opt_charged(args:list):
         'pwr': [0],
         'egy': [0],
         'volt_tau1': [0], 
+        'volt_tau2': [0],
         'temp': [298.15], 
         'cap': [3.299],
         'cap_loss': [0.001],
