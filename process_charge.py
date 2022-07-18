@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 16:50:31
+LastEditTime: 2022-07-18 22:02:11
 Description: 
 '''
 
@@ -88,8 +88,10 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
 
     while soc > bdy[0] and soc <=bdy[1]:
 
-        if volt > cv:
+        if volt - cv > 1e-3:
             cur = cur - 1e-2
+        elif volt - cv < -1e-3:
+            cur = cur + 1e-2
         else:
             pass
 

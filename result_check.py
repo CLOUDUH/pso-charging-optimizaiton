@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-16 14:20:18
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 16:21:08
+LastEditTime: 2022-07-18 22:08:18
 Description: 
 '''
 
@@ -37,19 +37,21 @@ if __name__ == '__main__':
 
     args1 = [[1.4101585, 2.38085789, 3.3, 1.14099779, 0.2], [1,1]]
     args2 = [[0.987626817, 1.91887326, 2.19157007, 3.3, 0.07], [1,1]]
-    args3 = [[1.65, 1.65, 1.65, 3.3, 0.0], [1,1]]
+    
+    args1 = [[1.65, 1.65, 1.65, 3.3, 0.2], [1,1]]
+    args2 = [[1.65, 1.65, 1.65, 3.3, 0.1], [1,1]]
 
     [policy_time1, _, data1] = battery_opt_charged(args1)
     [policy_time2, _, data2] = battery_opt_charged(args2)
-    [policy_time3, _, data3] = battery_opt_charged(args3)
-    # data_log4 = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
+    # [policy_time3, _, data3] = battery_opt_charged(args3)
+    data3 = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
 
-    [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
+    # [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
 
-    J_1 = object_function(policy_time1, data1['soh'][-1], 0.5)
-    J_2 = object_function(policy_time2, data2['soh'][-1], 0.5)
-    J_3 = object_function(policy_time3, data3['soh'][-1], 0.5)
-    print("except:", J_1, "\nnone:", J_2, "\nbitch:", J_3)
+    # J_1 = object_function(policy_time1, data1['soh'][-1], 0.5)
+    # J_2 = object_function(policy_time2, data2['soh'][-1], 0.5)
+    # J_3 = object_function(policy_time3, data3['soh'][-1], 0.5)
+    # print("except:", J_1, "\nnone:", J_2, "\nbitch:", J_3)
 
     x_limit = [0, max(data1['t'][-1], data2['t'][-1], data3['t'][-1])+200]
     
