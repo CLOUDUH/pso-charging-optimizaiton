@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-17 11:04:03
+LastEditTime: 2022-07-20 21:26:59
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -52,7 +52,7 @@ def match_policy(policy:list, t_pv_list:list, cur_pv_list:list):
 
     return [t_list, cur_list]
 
-def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain_list:list, cur_remain_list:list):
+def obj_func(data:dict, egy_pv:float, flag:int, policy:list, beta:float, t_remain_list:list, cur_remain_list:list):
     '''Object Function Calculate
     Args: 
         SoH: State of Health
@@ -71,6 +71,11 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
         except before that, when the particle 
         exceeds the limit, it will become infinite
     '''
+
+    t_cost = data['policy_time']
+    SoH = data['SoH'][-1]
+    egy = data['egy'][-1]
+
     t_m = 12*3600 # average dayttime (s)
     t_total = t_cost[0]
 
@@ -81,6 +86,8 @@ def obj_func(SoH:float, t_cost:list, flag:int, policy:list, beta:float, t_remain
                 0.1 * np.exp(- t_cost[4]/t_total))
                 
     J_SoH = (1 - SoH)
+
+    J_egy = egy / egy_pv
 
     J = beta * J_anxiety + (1 - beta) * J_SoH
 
@@ -186,14 +193,13 @@ def particle_swarm_optimization(N:int, d:int, ger:int, beta:float):
         pool.join() # Wait all thread to finish
 
         for j in range(N): 
-            [t_log[iter,j], flag, data_log] = results[j]
-            SoH = data_log['soh'][-1]
-
-            [t_remian, cur_remain] = match_policy(x[j], t_pv, cur_pv) # match the policy
+            [flag, data_log] = results[j]
             
             policy_log[iter,j] = x[j] # save the policy
-            
-            J_log[iter,j] = obj_func(SoH, t_log[iter,j], flag, x[j], beta, t_remian, cur_remain) # Optimal function value
+            t_log[iter,j] = data_log['policy_time']
+
+            [t_remian, cur_remain] = match_policy(x[j], t_pv, cur_pv) # match the policy
+            J_log[iter,j] = obj_func(data_log, egy_pv, flag, x[j], beta, t_remian, cur_remain) # Optimal function value
 
             if J_particle[j,0] > J_log[iter,j,0]:
                 J_particle[j] = J_log[iter,j]

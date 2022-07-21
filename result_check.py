@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-16 14:20:18
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-18 22:08:18
+LastEditTime: 2022-07-21 12:23:04
 Description: 
 '''
 
@@ -14,7 +14,13 @@ from process_charge import battery_opt_charged
 from process_charge import battery_cccv_charged
 from func.sciplt import sciplt
     
-def object_function(t_cost:list, SoH:float, beta:float):
+def object_function(data:dict, egy_pv:list, beta:float):
+
+    t_cost = data['policy_time']
+    SoH = data['soh'][-1]
+    egy = data['egy'][-1]
+    
+
     t_m = 12*3600 # average dayttime (s)
     t_total = t_cost[0]
 
@@ -26,35 +32,38 @@ def object_function(t_cost:list, SoH:float, beta:float):
 
     J_SoH = (1 - SoH)
 
+    J_egy = (egy_pv[-1] - egy) / egy_pv[-1]
+
     J = beta * J_anxiety + (1 - beta) * J_SoH
+
+    print(J_anxiety, J_SoH, J_egy, J)
 
     return [J, J_anxiety, J_SoH]
 
 if __name__ == '__main__':
 
-    # [[0.54600818, 1.10025945, 1.54652531, 6.6, 0.1], [1,1]]
-    # [[0.55958162, 1.11266183, 1.66596931, 6.39172209, 0.07641518], [1,1]]
-
-    args1 = [[1.4101585, 2.38085789, 3.3, 1.14099779, 0.2], [1,1]]
-    args2 = [[0.987626817, 1.91887326, 2.19157007, 3.3, 0.07], [1,1]]
-    
-    args1 = [[1.65, 1.65, 1.65, 3.3, 0.2], [1,1]]
-    args2 = [[1.65, 1.65, 1.65, 3.3, 0.1], [1,1]]
-
-    [policy_time1, _, data1] = battery_opt_charged(args1)
-    [policy_time2, _, data2] = battery_opt_charged(args2)
-    # [policy_time3, _, data3] = battery_opt_charged(args3)
+    # comparation of cccv and pulse charge
+    [_, data1] = battery_opt_charged([[1, 2, 1.5, 3.3, 0.20], [1,1]])
+    [_, data2] = battery_opt_charged([[1.5, 2.5, 1, 3.3, 0.05], [1,1]])
     data3 = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
 
+    # args1 = [[1, 2, 1.5, 3.3, 0.20], [1,1]]
+    # args2 = [[1, 2, 1.5, 3.3, 0.10], [1,1]]
+    # args3 = [[1, 2, 1.5, 3.3, 0.05], [1,1]]
+
+    # [_, data1] = battery_opt_charged(args1)
+    # [_, data2] = battery_opt_charged(args2)
+    # [_, data3] = battery_opt_charged(args3)
+
+    # # calculate the remaining current
     # [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
 
-    # J_1 = object_function(policy_time1, data1['soh'][-1], 0.5)
-    # J_2 = object_function(policy_time2, data2['soh'][-1], 0.5)
-    # J_3 = object_function(policy_time3, data3['soh'][-1], 0.5)
-    # print("except:", J_1, "\nnone:", J_2, "\nbitch:", J_3)
+    # J_1 = object_function(data1, egy_pv, 0.5)
+    # J_2 = object_function(data2, egy_pv, 0.5)
+    # J_3 = object_function(data3, egy_pv, 0.5)
 
     x_limit = [0, max(data1['t'][-1], data2['t'][-1], data3['t'][-1])+200]
-    
+     
     volt_plot = [[data1['t'], data1['volt'], 'PSO-Fixed','o','r',5000,0.01],
                 [data2['t'], data2['volt'], 'PSO-Variable','v','g',5000,0.01],
                 [data3['t'], data3['volt'], 'CCCV','s','b',5000,0.01]]
@@ -79,11 +88,11 @@ if __name__ == '__main__':
     plt.subplot(232)
     sciplt(cur_plot, "Time(s)", "Current(A)", "Current", "upper left", x_limit, [0,3.5])
     plt.subplot(233)
-    sciplt(soc_plot, "Time(s)", "SOC(%)", "State of Charge", "lower right", x_limit, [0,1])
+    sciplt(soc_plot, "Time(s)", "SOC(%)", "State of Charge", "lower right", x_limit, [0,1.1])
     plt.subplot(234)
-    sciplt(temp_plot, "Time(s)", "Temperature(K)", "Temperature", "lower right", x_limit, [280,320])
+    sciplt(temp_plot, "Time(s)", "Temperature(K)", "Temperature", "lower right", x_limit, [295,315])
     plt.subplot(235)
-    sciplt(cap_plot, "Time(s)", "Capacity(Ah)", "Capacity", "upper right", x_limit, [3.0,3.4])
+    sciplt(cap_plot, "Time(s)", "Capacity(Ah)", "Capacity", "upper right", x_limit, [3.29,3.301])
     plt.subplot(236)
-    sciplt(soh_plot, "Time(s)", "SOH(%)", "State of Health", "upper right", x_limit, [0.6,1])
+    sciplt(soh_plot, "Time(s)", "SOH(%)", "State of Health", "upper right", x_limit, [0.985,1.005])
     plt.show()

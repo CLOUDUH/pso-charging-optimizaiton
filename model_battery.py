@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-16 19:08:24
+LastEditTime: 2022-07-21 12:06:29
 Description: 
     Use coupling model which include battery 1-RC equivalent circuit model
     & thermal model & aging model.
@@ -81,20 +81,19 @@ def thermal_model(t_p:float, cur:float, temp:float, soc:float):
 
     return temp
 
-def aging_model(t_p:float, cur:float, temp:float, cap:float): 
+def aging_model(t_p:float, cur:float, temp:float, cap:float, cap_loss:float): 
     '''Battery Aging Model
     Args:
         t_p: Step (s)
         I: Battery current(charging positive) (A)
         Temp: Battery temperature (K)
         cap: Battery capacity (Ah)
+        cap_loss: Battery capacity loss rate (%)
     Returns:
         cap: Battery capacity (Ah)
         cap_loss: Battery capacity loss (Ah)
         soh: State of health (0-1)
     '''
-
-    cap_loss = cap_original - cap # Battery capacity loss (Ah)
 
     z = 0.55 # Order of Ah throughput
     E = 31700 # Activation energy for cycle aging J/mol
@@ -110,13 +109,13 @@ def aging_model(t_p:float, cur:float, temp:float, cap:float):
     dloss = (abs(cur) / 3600) * z * B * np.exp((-E + alpha * abs(cur)) / (R * temp)) * b
 
     cap_loss = cap_loss + dloss * t_p
-    cap = cap_original - cap_loss
+    cap = cap_original * (1 - cap_loss * 0.01) 
 
-    soh = 1 - ((cap_loss / cap_original) / 0.2)
+    soh = 1 - (cap_loss / 20)
 
     return [cap, cap_loss ,soh]
 
-def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, cap:float):
+def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, cap:float, cap_loss:float):
     '''Battery Charging Model
     Args:
         t_p: Step (s)
@@ -136,7 +135,7 @@ def battery_model(t_p:float, cur:float, soc:float, volt_tau1:float, temp:float, 
 
     [volt, soc, volt_tau1] = equivalent_circuit_model(t_p, cur, temp, soc, volt_tau1)
     temp = thermal_model(t_p, cur, temp, soc)
-    [cap, cap_loss ,soh] = aging_model(t_p, cur, temp, cap)
+    [cap, cap_loss ,soh] = aging_model(t_p, cur, temp, cap, cap_loss)
     pwr = volt * cur
     
     # print("Volt:", round(volt,3), "Cur:", round(cur, 2), "SoC:", round(soc, 2), "Temp:", round(temp,2), "Qloss:", round(cap,2), "SoH:", round(soh,2))

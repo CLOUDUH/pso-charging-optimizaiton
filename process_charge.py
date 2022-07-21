@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-18 22:02:11
+LastEditTime: 2022-07-21 12:09:13
 Description: 
 '''
 
@@ -32,11 +32,12 @@ def cc_charge(t_p:float, cur:float, bdy:list, flag_timeout:int, data_log:dict):
     volt_tau1 = data_log['volt_tau1'][-1]
     temp = data_log['temp'][-1]
     cap = data_log['cap'][-1]
+    cap_loss = data_log['cap_loss'][-1]
     
     t = t_start
 
     while soc >= bdy[0] and soc <=bdy[1]:
-        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap, cap_loss)
         egy = egy + pwr * t_p / 3600
 
         data_log['t'].append(t)
@@ -82,6 +83,7 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
     volt_tau1 = data_log['volt_tau1'][-1]
     temp = data_log['temp'][-1]
     cap = data_log['cap'][-1]
+    cap_loss = data_log['cap_loss'][-1]
 
     t = t_start
     cur = 1.65
@@ -90,14 +92,15 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
 
         if volt - cv > 1e-3:
             cur = cur - 1e-2
-        elif volt - cv < -1e-3:
-            cur = cur + 1e-2
+        # elif volt - cv < -1e-3:
+        #     cur = cur + 1e-4
         else:
             pass
 
-        if cur <= 6.5e-2: break
+        if cur <= 6.5e-2: 
+            break
 
-        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+        [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap, cap_loss)
         egy = egy + pwr * t_p / 3600
 
         data_log['t'].append(t)
@@ -111,6 +114,8 @@ def cv_charge(t_p:float, cv:float, bdy:list, flag_timeout:int, data_log:dict):
         data_log['cap'].append(cap)
         data_log['cap_loss'].append(cap_loss)
         data_log['soh'].append(soh)
+
+        t = t + t_p
 
         if t >= 12 * 3600: # Timeout    
             flag_timeout = 1 
@@ -143,13 +148,14 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
     volt_tau1 = data_log['volt_tau1'][-1]
     temp = data_log['temp'][-1]
     cap = data_log['cap'][-1]
+    cap_loss = data_log['cap_loss'][-1]
         
     t = t_start
 
     while soc >= bdy[0] and soc <=bdy[1]:
         t_cycle = t
         while t < t_cycle + cycle * ratio:
-            [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap)
+            [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, cur, soc, volt_tau1, temp, cap, cap_loss)
             egy = egy + pwr * t_p / 3600
 
             data_log['t'].append(t)
@@ -163,10 +169,12 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             data_log['cap'].append(cap)
             data_log['cap_loss'].append(cap_loss)
             data_log['soh'].append(soh)
+            
             t += t_p
 
-        while volt > 4.05:
-            [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, volt_tau1, temp, cap)
+        t_stop = t
+        while volt > 4.2 or t < t_stop + cycle * (1-ratio):
+            [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, volt_tau1, temp, cap, cap_loss)
             egy = 0
 
             if data_log['volt'][-1] - volt <= 3e-6:
@@ -175,7 +183,7 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             data_log['t'].append(t)
             data_log['soc'].append(soc)
             data_log['volt'].append(volt)
-            data_log['cur'].append(cur)
+            data_log['cur'].append(0)
             data_log['pwr'].append(pwr)
             data_log['egy'].append(egy)
             data_log['volt_tau1'].append(volt_tau1)
@@ -183,7 +191,13 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
             data_log['cap'].append(cap)
             data_log['cap_loss'].append(cap_loss)
             data_log['soh'].append(soh)
+            
             t += t_p
+
+        d = cycle * ratio / (cycle * ratio + t - t_stop)
+
+        if d < 0.05:
+            break
 
         if t >= 12 * 3600: # Timeout    
             flag_timeout = 1 
@@ -279,15 +293,17 @@ def battery_opt_charged(args:list):
 
     policy_time = [data_log['t'][-1], t_cc1, t_cc2, t_cc3, t_pulse]
 
+    data_log['policy_time'] = policy_time
+
     # policy_display =[round(cur_cc1,3), round(cur_cc2,3), round(cur_cc3,3), round(cur_pulse,3), round(range_pulse,3)]
     # time_display = [round(policy_time[0]/3600 ,2), round(policy_time[1]/3600,2), round(policy_time[2]/3600,2), 
     #     round(policy_time[3]/3600,2), round(policy_time[4]/3600,2)]
     # print("Iter-Num:", iter, "-", thread, "\tSoH:",  round(100 * data_log['soh'][-1], 3), "\tTemp:", 
     #     round(data_log['temp'][-1], 3), "\tPly:", policy_display,"\tTime:", time_display)
     
-    return [policy_time, flag_timeout, data_log]
+    return [flag_timeout, data_log]
 
 if __name__ == '__main__':
     
     args1 = [[1.4101585, 2.38085789, 3.3, 1.14099779, 0.2], [1,1]]
-    [policy_time, data_log, flag_timeout] = battery_opt_charged(args1)
+    [flag_timeout, data_log] = battery_opt_charged(args1)
