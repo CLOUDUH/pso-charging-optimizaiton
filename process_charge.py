@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-09 14:58:26
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-21 12:09:13
+LastEditTime: 2022-07-21 15:33:25
 Description: 
 '''
 
@@ -175,7 +175,6 @@ def pulse_charge(t_p:float, cur:float, ratio:float, cycle:float, bdy:list, flag_
         t_stop = t
         while volt > 4.2 or t < t_stop + cycle * (1-ratio):
             [soc, volt, pwr, volt_tau1, temp, cap, cap_loss, soh] = battery_model(t_p, 0, soc, volt_tau1, temp, cap, cap_loss)
-            egy = 0
 
             if data_log['volt'][-1] - volt <= 3e-6:
                 break

@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-07-16 14:20:18
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-21 12:23:04
+LastEditTime: 2022-07-21 22:39:23
 Description: 
 '''
 
@@ -20,40 +20,51 @@ def object_function(data:dict, egy_pv:list, beta:float):
     SoH = data['soh'][-1]
     egy = data['egy'][-1]
     
-
     t_m = 12*3600 # average dayttime (s)
     t_total = t_cost[0]
 
-    J_anxiety = (t_total / t_m) * (
-                0.4 * np.exp(- t_cost[1]/t_total) + 
-                0.3 * np.exp(- t_cost[2]/t_total) + 
-                0.2 * np.exp(- t_cost[3]/t_total) + 
-                0.1 * np.exp(- t_cost[4]/t_total))
+    J_total = np.exp((t_total / t_m)-1) 
 
-    J_SoH = (1 - SoH)
+    J_range = 0.9 * t_cost[1]/t_total + \
+            0.6 * t_cost[2]/t_total + \
+            0.3 * t_cost[3]/t_total + \
+            0.1 * t_cost[4]/t_total
 
+    # print(np.exp(t_cost[1]/t_total), np.exp(t_cost[2]/t_total), np.exp(t_cost[3]/t_total), np.exp(t_cost[4]/t_total))
+
+    J_anxiety = J_total * J_range
+
+    J_SoH = 50 * (1 - SoH) # range from 0.25(0.1A) - 0.75(1C)
+    
     J_egy = (egy_pv[-1] - egy) / egy_pv[-1]
 
     J = beta * J_anxiety + (1 - beta) * J_SoH
 
-    print(J_anxiety, J_SoH, J_egy, J)
+    print(round(J_total,4), round(J_range,4), round(J_anxiety,4), round(J_SoH,4), round(J_egy,4), round(J,4))
 
     return [J, J_anxiety, J_SoH]
 
 if __name__ == '__main__':
 
     # comparation of cccv and pulse charge
-    [_, data1] = battery_opt_charged([[1, 2, 1.5, 3.3, 0.20], [1,1]])
-    [_, data2] = battery_opt_charged([[1.5, 2.5, 1, 3.3, 0.05], [1,1]])
+    [_, data1] = battery_opt_charged([[1.18731741, 1.6213318, 1.96608469, 0.63817846, 0.2], [1,1]])
+    [_, data2] = battery_opt_charged([[1.18731741, 1.6213318, 1.96608469, 3.3, 0.1], [1,1]])
     data3 = battery_cccv_charged(1.65, 4.05, [0,0.8,1])
 
-    # args1 = [[1, 2, 1.5, 3.3, 0.20], [1,1]]
-    # args2 = [[1, 2, 1.5, 3.3, 0.10], [1,1]]
-    # args3 = [[1, 2, 1.5, 3.3, 0.05], [1,1]]
+    # args1 = [[3.3, 1.65, 1.65, 3.3, 0.10], [1,1]]
+    # args2 = [[0.825, 1.65, 2, 3.3, 0.10], [1,1]]
+    # args3 = [[1, 2, 1.5, 3.3, 0.20], [1,1]]
 
-    # [_, data1] = battery_opt_charged(args1)
-    # [_, data2] = battery_opt_charged(args2)
-    # [_, data3] = battery_opt_charged(args3)
+    # [_, data1] = battery_opt_charged([[3.3, 3.3, 3.3, 3.3, 0], [1,1]])
+    # [_, data2] = battery_opt_charged([[0.1, 0.1, 0.1, 0.1, 0], [1,1]])
+    # [_, data3] = battery_opt_charged([[3.3, 1.65, 0.85, 3.3, 0.10], [1,1]])
+    # [_, data4] = battery_opt_charged([[0.85, 1.65, 3.3, 3.3, 0.10], [1,1]])
+    # [_, data5] = battery_opt_charged([[1, 2, 1.5, 3.3, 0.20], [1,1]])
+    # [_, data6] = battery_opt_charged([[1, 2, 1.5, 3.3, 0.15], [1,1]])
+    # [_, data7] = battery_opt_charged([[1, 2, 1.5, 3.3, 0.10], [1,1]])
+    # [_, data8] = battery_opt_charged([[1, 2, 1.5, 6.6, 0.15], [1,1]])
+    # [_, data9] = battery_opt_charged([[1, 2, 1.5, 3.3, 0.15], [1,1]])
+    # [_, data10] = battery_opt_charged([[1, 2, 1.5, 2.5, 0.15], [1,1]])
 
     # # calculate the remaining current
     # [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
@@ -61,6 +72,13 @@ if __name__ == '__main__':
     # J_1 = object_function(data1, egy_pv, 0.5)
     # J_2 = object_function(data2, egy_pv, 0.5)
     # J_3 = object_function(data3, egy_pv, 0.5)
+    # J_4 = object_function(data4, egy_pv, 0.5)
+    # J_5 = object_function(data5, egy_pv, 0.5)
+    # J_6 = object_function(data6, egy_pv, 0.5)
+    # J_7 = object_function(data7, egy_pv, 0.5)
+    # J_8 = object_function(data8, egy_pv, 0.5)
+    # J_9 = object_function(data9, egy_pv, 0.5)
+    # J_10 = object_function(data10, egy_pv, 0.5)
 
     x_limit = [0, max(data1['t'][-1], data2['t'][-1], data3['t'][-1])+200]
      

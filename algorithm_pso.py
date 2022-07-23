@@ -2,7 +2,7 @@
 Author: CLOUDUH
 Date: 2022-05-28 17:55:32
 LastEditors: CLOUDUH
-LastEditTime: 2022-07-20 21:26:59
+LastEditTime: 2022-07-22 09:58:44
 Description: Battery charging optimization by PSO
     Battery charging optimization program.
     Optimization algorithm is particle swarm optimization
@@ -73,21 +73,24 @@ def obj_func(data:dict, egy_pv:float, flag:int, policy:list, beta:float, t_remai
     '''
 
     t_cost = data['policy_time']
-    SoH = data['SoH'][-1]
+    SoH = data['soh'][-1]
     egy = data['egy'][-1]
 
     t_m = 12*3600 # average dayttime (s)
     t_total = t_cost[0]
 
-    J_anxiety = (t_total / t_m) * (
-                0.4 * np.exp(- t_cost[1]/t_total) + 
-                0.3 * np.exp(- t_cost[2]/t_total) + 
-                0.2 * np.exp(- t_cost[3]/t_total) + 
-                0.1 * np.exp(- t_cost[4]/t_total))
-                
-    J_SoH = (1 - SoH)
+    J_total = np.exp((t_total / t_m)-1) 
 
-    J_egy = egy / egy_pv
+    J_range = 0.4 * t_cost[1]/t_total + \
+            0.3 * t_cost[2]/t_total + \
+            0.2 * t_cost[3]/t_total + \
+            0.1 * t_cost[4]/t_total
+
+    J_anxiety = J_total * J_range
+
+    J_egy = (egy_pv[-1] - egy) / egy_pv[-1]
+
+    J_SoH = 50 * (1 - SoH) 
 
     J = beta * J_anxiety + (1 - beta) * J_SoH
 
@@ -145,12 +148,12 @@ def particle_swarm_optimization(N:int, d:int, ger:int, beta:float):
     [t_pv, cur_pv, pwr_pv, egy_pv, t_riseup, t_falldown] = clac_remain_current(0.1, 180, 30)
 
     policy_limit_cc = np.matlib.repmat(np.array([[0],[3.3]]),1,d-2) 
-    policy_limit_pulse = np.array([[0],[3.3]])
+    policy_limit_pulse = np.array([[0],[6.6]])
     policy_limit_range = np.array([[0],[0.2]])
     policy_limit = np.hstack((policy_limit_cc, policy_limit_pulse, policy_limit_range)) # Charging crrent limits (2-d)
 
     vlimit_cc = np.matlib.repmat(np.array([[-0.33],[0.33]]),1,d-2) 
-    vlimit_pulse = np.array([[-0.5],[0.5]])
+    vlimit_pulse = np.array([[-0.66],[0.66]])
     vlimit_range = np.array([[-0.01],[0.01]])
     vlimit = np.hstack((vlimit_cc, vlimit_pulse, vlimit_range)) # Velocity limits (2-d)
 
